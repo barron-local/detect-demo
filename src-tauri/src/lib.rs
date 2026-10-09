@@ -69,7 +69,7 @@ fn get_now_timestamp() -> String {
 }
 
 #[tauri::command]
-fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Result<ScanOutput, String> {
+async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Result<ScanOutput, String> {
     let now = get_now_timestamp();
     let mut records: Vec<ForensicScanRecord> = Vec::new();
     let mut suspicious_count = 0;
@@ -1152,7 +1152,7 @@ pub struct CustomEvaluationResult {
 }
 
 #[tauri::command]
-fn run_forensic_diagnostics_suite() -> Result<DiagnosticsSuiteResult, String> {
+async fn run_forensic_diagnostics_suite() -> Result<DiagnosticsSuiteResult, String> {
     let now = get_now_timestamp();
     let start_time = std::time::Instant::now();
     let mut results = Vec::new();
@@ -1317,7 +1317,7 @@ fn run_forensic_diagnostics_suite() -> Result<DiagnosticsSuiteResult, String> {
 }
 
 #[tauri::command]
-fn evaluate_custom_artifact(artifact_type: String, input_data: String) -> Result<CustomEvaluationResult, String> {
+async fn evaluate_custom_artifact(artifact_type: String, input_data: String) -> Result<CustomEvaluationResult, String> {
     let raw = input_data.trim();
     let lower = raw.to_lowercase();
     let mut matched_rules = Vec::new();
@@ -1440,7 +1440,7 @@ fn evaluate_custom_artifact(artifact_type: String, input_data: String) -> Result
 }
 
 #[tauri::command]
-fn run_all_forensic_scans() -> Result<FullSystemAuditReport, String> {
+async fn run_all_forensic_scans() -> Result<FullSystemAuditReport, String> {
     let now = get_now_timestamp();
     let all_tool_ids = vec![
         "autoruns-plus-plus",
@@ -1467,7 +1467,7 @@ fn run_all_forensic_scans() -> Result<FullSystemAuditReport, String> {
     let mut total_suspicious = 0;
 
     for id in all_tool_ids {
-        if let Ok(res) = run_forensic_scan(id.to_string(), None) {
+        if let Ok(res) = run_forensic_scan(id.to_string(), None).await {
             total_artifacts += res.total_items;
             total_suspicious += res.suspicious_count;
             modules_results.push(res);
