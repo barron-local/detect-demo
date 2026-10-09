@@ -1,16 +1,14 @@
 import React from "react";
-import { Shield, Search, Activity } from "lucide-react";
+import { Shield, Search } from "lucide-react";
 
 interface NavbarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  toolCount: number;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   searchQuery,
   onSearchChange,
-  toolCount,
 }) => {
   return (
     <header className="site-header">
@@ -46,18 +44,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
           <span className="search-shortcut">/</span>
-        </div>
-
-        <div className="nav-actions">
-          <div className="live-status-pill">
-            <span className="pulse-dot" />
-            <span className="status-text">{toolCount} Built-in Scanners</span>
-          </div>
-
-          <div className="badge-pill badge-core flex-pill">
-            <Activity size={13} />
-            <span>100% Local Processing</span>
-          </div>
         </div>
       </div>
     </header>

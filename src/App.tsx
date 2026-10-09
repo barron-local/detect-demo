@@ -85,7 +85,6 @@ export function App() {
       <Navbar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        toolCount={TOOLS_DATA.length}
       />
 
       <main className="main-content">
