@@ -416,26 +416,30 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
             tool_name = "USBDeview++ (DMA & USB Forensic Inspector)".to_string();
             let ps = r#"
                 $usbList = @()
-                $key = "HKLM:\SYSTEM\CurrentControlSet\Enum\USBSTOR"
-                if (Test-Path $key) {
-                    $devices = Get-ChildItem -Path $key -ErrorAction SilentlyContinue
-                    foreach ($d in $devices) {
-                        $instances = Get-ChildItem -Path $d.PSPath -ErrorAction SilentlyContinue
-                        foreach ($inst in $instances) {
-                            $props = Get-ItemProperty -Path $inst.PSPath -ErrorAction SilentlyContinue
-                            $fname = $props.FriendlyName
-                            if (!$fname) { $fname = $d.PSChildName }
-                            $hwId = $props.HardwareID
-                            $usbList += [PSCustomObject]@{
-                                name = [string]$fname
-                                id = [string]$inst.PSChildName
-                                hardwareId = [string]($hwId -join '; ')
-                                deviceType = [string]$d.PSChildName
+                $keys = @("HKLM:\SYSTEM\CurrentControlSet\Enum\USB", "HKLM:\SYSTEM\CurrentControlSet\Enum\USBSTOR")
+                foreach ($key in $keys) {
+                    if (Test-Path $key) {
+                        $devices = Get-ChildItem -Path $key -ErrorAction SilentlyContinue
+                        foreach ($d in $devices) {
+                            $instances = Get-ChildItem -Path $d.PSPath -ErrorAction SilentlyContinue
+                            foreach ($inst in $instances) {
+                                $props = Get-ItemProperty -Path $inst.PSPath -ErrorAction SilentlyContinue
+                                $fname = $props.FriendlyName
+                                if (!$fname) { $fname = $props.DeviceDesc }
+                                if ($fname -match ';(.*)$') { $fname = $matches[1] }
+                                if (!$fname) { $fname = $d.PSChildName }
+                                $hwId = $props.HardwareID
+                                $usbList += [PSCustomObject]@{
+                                    name = [string]$fname
+                                    id = [string]$inst.PSChildName
+                                    hardwareId = [string]($hwId -join '; ')
+                                    deviceType = [string]$d.PSChildName
+                                }
                             }
                         }
                     }
                 }
-                $usbList | ConvertTo-Json -Compress
+                $usbList | Select-Object * -Unique | ConvertTo-Json -Compress
             "#;
             if let Ok(json_str) = execute_powershell(ps) {
                 if let Ok(val) = serde_json::from_str::<serde_json::Value>(&json_str) {
