@@ -1,6 +1,10 @@
-# Tauri + React + Typescript
+# Detect Demo (Tauri + React + TypeScript)
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+This template should help get you started developing with Tauri, React and TypeScript in Vite.
+
+## Quick Start Test
+
+- Git pull test ready! 🚀
 
 ## Recommended IDE Setup
 
