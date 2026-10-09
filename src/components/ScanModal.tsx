@@ -103,7 +103,6 @@ export const ScanModal: React.FC<ScanModalProps> = ({ tool, onClose }) => {
             <div>
               <div className="modal-title-wrap">
                 <h2 className="modal-title">{tool.name}</h2>
-                <span className="badge-pill badge-core">BUILT-IN ENGINE</span>
               </div>
               <p className="modal-category">Target: {tool.targetArtifact}</p>
             </div>

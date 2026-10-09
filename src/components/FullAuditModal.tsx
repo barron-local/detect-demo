@@ -119,7 +119,6 @@ export const FullAuditModal: React.FC<FullAuditModalProps> = ({ isOpen, onClose 
             <div>
               <div className="audit-header-title-row">
                 <h2 className="modal-title">Full 17-Module System Forensic Audit</h2>
-                <span className="badge-pill badge-core">Comprehensive Live Scan</span>
               </div>
               <p className="modal-subtitle">
                 Simultaneous multi-vector live inspection across Registry, NTFS, BAM, Memory, DNS, and Downloads

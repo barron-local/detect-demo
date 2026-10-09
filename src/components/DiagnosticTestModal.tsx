@@ -121,7 +121,6 @@ export const DiagnosticTestModal: React.FC<DiagnosticTestModalProps> = ({
             <div>
               <div className="diagnostic-header-title-row">
                 <h2 className="modal-title">Forensic Detection Test Suite & Diagnostics</h2>
-                <span className="badge-pill badge-core">Automated QA Lab</span>
               </div>
               <p className="modal-subtitle">
                 Synthetic verification of cheat signatures, anti-forensics, and 0% false positive benchmark

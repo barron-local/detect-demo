@@ -38,12 +38,6 @@ export const ToolCard: React.FC<ToolCardProps> = ({
           <h3 className="card-title">{tool.name}</h3>
           <span className="card-category-text">{tool.category}</span>
         </div>
-
-        {tool.badge && (
-          <span className={`badge-pill badge-${tool.badge.toLowerCase()}`}>
-            {tool.badge}
-          </span>
-        )}
       </div>
 
       <p className="card-tagline">{tool.tagline}</p>

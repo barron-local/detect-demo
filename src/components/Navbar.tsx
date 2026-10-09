@@ -22,11 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Shield className="brand-icon" size={22} />
           </div>
           <div className="brand-text-block">
-            <div className="brand-title-row">
-              <span className="brand-name">DETECT<span className="brand-accent">.AC</span></span>
-              <span className="brand-badge">NATIVE SUITE</span>
-            </div>
-            <span className="brand-sub">Standalone Forensic & Anti-Cheat Analysis Engine</span>
+            <span className="brand-name">DETECT<span className="brand-accent">.AC</span></span>
           </div>
         </div>
 
