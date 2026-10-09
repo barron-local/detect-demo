@@ -445,10 +445,24 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
                 if let Ok(val) = serde_json::from_str::<serde_json::Value>(&json_str) {
                     let items = if val.is_array() { val.as_array().unwrap().clone() } else { vec![val] };
                     for (i, it) in items.iter().enumerate() {
-                        let name = it["name"].as_str().unwrap_or("USB Device").to_string();
+                        let mut name = it["name"].as_str().unwrap_or("USB Device").to_string();
                         let dev_id = it["id"].as_str().unwrap_or("").to_string();
                         let hw_id = it["hardwareId"].as_str().unwrap_or("").to_string();
                         let dev_type = it["deviceType"].as_str().unwrap_or("").to_string();
+
+                        let mut vid_pid = String::new();
+                        if let Some(vid_idx) = hw_id.find("VID_") {
+                            if let Some(pid_idx) = hw_id.find("PID_") {
+                                let vid = hw_id.chars().skip(vid_idx + 4).take(4).collect::<String>();
+                                let pid = hw_id.chars().skip(pid_idx + 4).take(4).collect::<String>();
+                                vid_pid = format!("[VID_{}:PID_{}]", vid, pid);
+                            }
+                        }
+
+                        let is_generic = name.starts_with("USB ") || name.contains("Generic") || name.contains("Unknown");
+                        if is_generic && !vid_pid.is_empty() {
+                            name = format!("{} {}", name, vid_pid);
+                        }
 
                         let mut details = HashMap::new();
                         details.insert("Instance ID / Serial".to_string(), dev_id.clone());
