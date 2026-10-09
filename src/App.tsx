@@ -14,7 +14,6 @@ import "./App.css";
 export function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<ToolCategory>("All");
-  const [activeFeatureFilter, setActiveFeatureFilter] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"name" | "category" | "badge">("name");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [inspectTool, setInspectTool] = useState<ForensicTool | null>(null);
@@ -37,16 +36,6 @@ export function App() {
 
     if (selectedCategory !== "All") {
       result = result.filter((tool) => tool.category === selectedCategory);
-    }
-
-    if (activeFeatureFilter) {
-      const q = activeFeatureFilter.toLowerCase();
-      result = result.filter(
-        (tool) =>
-          tool.highlights.some((h) => h.toLowerCase().includes(q)) ||
-          tool.features.some((f) => f.toLowerCase().includes(q)) ||
-          tool.description.toLowerCase().includes(q)
-      );
     }
 
     if (searchQuery.trim()) {
@@ -84,12 +73,11 @@ export function App() {
     });
 
     return result;
-  }, [searchQuery, selectedCategory, activeFeatureFilter, sortBy]);
+  }, [searchQuery, selectedCategory, sortBy]);
 
   const handleResetFilters = () => {
     setSearchQuery("");
     setSelectedCategory("All");
-    setActiveFeatureFilter(null);
   };
 
   return (
@@ -116,8 +104,6 @@ export function App() {
           onSortChange={setSortBy}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
-          activeFeatureFilter={activeFeatureFilter}
-          onFeatureFilterChange={setActiveFeatureFilter}
           totalFiltered={filteredTools.length}
         />
 
@@ -135,15 +121,14 @@ export function App() {
         ) : (
           <div className="empty-state-box">
             <div className="empty-state-icon">
-              <SearchX size={28} />
+              <SearchX size={24} />
             </div>
-            <h3 className="empty-state-title">No matching forensic tools found</h3>
+            <h3 className="empty-state-title">No matching tools found</h3>
             <p className="empty-state-text">
-              We couldn't find any tool matching "<strong>{searchQuery || activeFeatureFilter}</strong>".
-              Try adjusting your search terms or category filters.
+              No module matched "<strong>{searchQuery}</strong>". Try adjusting your search query.
             </p>
             <button className="btn-reset-filters" onClick={handleResetFilters}>
-              Clear All Filters
+              Clear Search
             </button>
           </div>
         )}
@@ -166,20 +151,20 @@ export function App() {
       <footer className="site-footer">
         <div className="footer-content">
           <div>
-            <span>© 2026 DETECT.AC — Built-in Standalone Forensic Engine for PC Checkers & Analysts.</span>
+            <span>© 2026 DETECT.AC — Built-in Standalone Forensic Engine</span>
           </div>
           <div className="footer-links">
             <button
               className="footer-link btn-link-plain"
               onClick={() => openExternalLink("https://detect.ac")}
             >
-              detect.ac Official
+              detect.ac
             </button>
             <button
               className="footer-link btn-link-plain"
               onClick={() => openExternalLink("https://detect.ac/tools")}
             >
-              Forensic Framework
+              Documentation
             </button>
           </div>
         </div>

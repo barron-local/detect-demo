@@ -1,11 +1,7 @@
 import React from "react";
 import { ForensicTool } from "../data/toolsData";
 import { ToolIcon } from "./ToolIcon";
-import {
-  Activity,
-  ChevronRight,
-  Database,
-} from "lucide-react";
+import { Activity, Info } from "lucide-react";
 
 interface ToolCardProps {
   tool: ForensicTool;
@@ -33,63 +29,48 @@ export const ToolCard: React.FC<ToolCardProps> = ({
     >
       <div className="tool-card-glow" />
 
-      <div className="card-top">
+      <div className="card-header-clean">
         <div className="card-icon-container">
-          <ToolIcon name={tool.iconName} size={22} className="card-icon-svg" />
+          <ToolIcon name={tool.iconName} size={20} className="card-icon-svg" />
         </div>
 
-        <div className="card-meta-tags">
-          {tool.badge && (
-            <span className={`badge-pill badge-${tool.badge.toLowerCase()}`}>
-              {tool.badge}
-            </span>
-          )}
-          <span className="version-pill">BUILT-IN</span>
+        <div className="card-title-group">
+          <h3 className="card-title">{tool.name}</h3>
+          <span className="card-category-text">{tool.category}</span>
         </div>
-      </div>
 
-      <div className="card-title-block">
-        <div className="category-micro">{tool.category}</div>
-        <h3 className="card-title">{tool.name}</h3>
-        <p className="card-tagline">{tool.tagline}</p>
-      </div>
-
-      <div className="card-artifact-row">
-        <Database size={13} className="text-muted" />
-        <span className="artifact-label">Target:</span>
-        <span className="artifact-code">{tool.targetArtifact}</span>
-      </div>
-
-      <div className="card-highlights">
-        {tool.highlights.map((item, idx) => (
-          <span key={idx} className="highlight-tag">
-            {item}
+        {tool.badge && (
+          <span className={`badge-pill badge-${tool.badge.toLowerCase()}`}>
+            {tool.badge}
           </span>
-        ))}
+        )}
       </div>
 
-      <p className="card-description-excerpt">{tool.description}</p>
+      <p className="card-tagline">{tool.tagline}</p>
+
+      <div className="card-target-pill">
+        <span className="target-pill-label">Target:</span>
+        <code className="target-pill-code">{tool.targetArtifact}</code>
+      </div>
 
       <div className="card-actions" onClick={(e) => e.stopPropagation()}>
         <button
-          className="btn-card-action btn-inspect"
+          className="btn-card-specs"
           onClick={() => onSelect(tool)}
-          title="Inspect Tool Specifications"
+          title="View Specifications"
         >
-          <span>Specifications</span>
-          <ChevronRight size={14} />
+          <Info size={13} />
+          <span>Specs</span>
         </button>
 
-        <div className="card-action-group">
-          <button
-            className="btn-card-run"
-            onClick={() => onOpenScanner(tool)}
-            title={`Run built-in ${tool.name} analysis`}
-          >
-            <Activity size={14} />
-            <span>Scan & Analyze</span>
-          </button>
-        </div>
+        <button
+          className="btn-card-run"
+          onClick={() => onOpenScanner(tool)}
+          title={`Analyze ${tool.name}`}
+        >
+          <Activity size={13} />
+          <span>Analyze</span>
+        </button>
       </div>
     </article>
   );
