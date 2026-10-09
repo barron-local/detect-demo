@@ -18,7 +18,6 @@ export function App() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedTool, setSelectedTool] = useState<ForensicTool | null>(null);
 
-  // Global keyboard shortcut '/' to focus search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "/" && document.activeElement?.tagName !== "INPUT") {
@@ -31,16 +30,13 @@ export function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Filter & Sort Logic
   const filteredTools = useMemo(() => {
     let result = [...TOOLS_DATA];
 
-    // 1. Category Filter
     if (selectedCategory !== "All") {
       result = result.filter((tool) => tool.category === selectedCategory);
     }
 
-    // 2. Feature Quick Filter
     if (activeFeatureFilter) {
       const q = activeFeatureFilter.toLowerCase();
       result = result.filter(
@@ -51,7 +47,6 @@ export function App() {
       );
     }
 
-    // 3. Search Query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       result = result.filter((tool) => {
@@ -67,7 +62,6 @@ export function App() {
       });
     }
 
-    // 4. Sort
     result.sort((a, b) => {
       if (sortBy === "badge") {
         const priority: Record<string, number> = {
@@ -98,28 +92,23 @@ export function App() {
 
   return (
     <div className="app-layout">
-      {/* Top Navigation */}
       <Navbar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         toolCount={TOOLS_DATA.length}
       />
 
-      {/* Main Content Area */}
       <main className="main-content">
-        {/* Hero Section */}
         <HeroSection
           totalTools={TOOLS_DATA.length}
           filteredCount={filteredTools.length}
         />
 
-        {/* Category Filter Pills */}
         <CategoryFilter
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
         />
 
-        {/* Search / Filter Toolbar */}
         <Toolbar
           sortBy={sortBy}
           onSortChange={setSortBy}
@@ -130,7 +119,6 @@ export function App() {
           totalFiltered={filteredTools.length}
         />
 
-        {/* Tools Grid or Empty State */}
         {filteredTools.length > 0 ? (
           <div className={`tools-grid ${viewMode === "list" ? "list-view" : ""}`}>
             {filteredTools.map((tool) => (
@@ -158,13 +146,11 @@ export function App() {
         )}
       </main>
 
-      {/* Modal Tool Inspector */}
       <ToolDetailModal
         tool={selectedTool}
         onClose={() => setSelectedTool(null)}
       />
 
-      {/* Footer */}
       <footer className="site-footer">
         <div className="footer-content">
           <div>

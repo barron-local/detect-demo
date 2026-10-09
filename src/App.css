@@ -1,7 +1,3 @@
-/* =========================================================
-   DETECT.AC — Minimalist Cyber Forensic Design System
-   ========================================================= */
-
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
@@ -66,7 +62,6 @@ body {
     radial-gradient(circle 500px at 10% 80%, rgba(16, 185, 129, 0.04), transparent);
 }
 
-/* Custom Minimalist Scrollbar */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
@@ -82,7 +77,6 @@ body {
   background: var(--text-dim);
 }
 
-/* App Wrapper */
 .app-layout {
   display: flex;
   flex-direction: column;
@@ -97,9 +91,6 @@ body {
   padding: 2rem 1.5rem 4rem;
 }
 
-/* =========================================================
-   Navbar
-   ========================================================= */
 .site-header {
   position: sticky;
   top: 0;
@@ -180,7 +171,6 @@ body {
   font-weight: 500;
 }
 
-/* Nav Search Bar */
 .nav-search-wrap {
   flex: 1;
   max-width: 480px;
@@ -247,7 +237,6 @@ body {
   pointer-events: none;
 }
 
-/* Nav Actions */
 .nav-actions {
   display: flex;
   align-items: center;
@@ -302,9 +291,6 @@ body {
   color: var(--text-primary);
 }
 
-/* =========================================================
-   Hero Section
-   ========================================================= */
 .hero-section {
   text-align: center;
   padding: 2.5rem 1rem 2rem;
@@ -350,7 +336,6 @@ body {
   line-height: 1.6;
 }
 
-/* Metrics Grid */
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -414,9 +399,6 @@ body {
 .text-accent { color: var(--accent-cyan); }
 .text-muted { color: var(--text-muted); }
 
-/* =========================================================
-   Category Filter Bar
-   ========================================================= */
 .category-filter-bar {
   margin: 2rem 0 1.2rem;
 }
@@ -478,9 +460,6 @@ body {
   color: #07090e;
 }
 
-/* =========================================================
-   Toolbar Controls
-   ========================================================= */
 .toolbar-container {
   display: flex;
   align-items: center;
@@ -608,9 +587,6 @@ body {
   color: var(--accent-cyan);
 }
 
-/* =========================================================
-   Tool Grid & Cards
-   ========================================================= */
 .tools-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
@@ -621,7 +597,6 @@ body {
   grid-template-columns: 1fr;
 }
 
-/* Individual Tool Card */
 .tool-card {
   position: relative;
   background: var(--bg-card);
@@ -658,7 +633,6 @@ body {
   opacity: 1;
 }
 
-/* Card Top Bar */
 .card-top {
   display: flex;
   align-items: center;
@@ -735,7 +709,6 @@ body {
   border-radius: var(--radius-sm);
 }
 
-/* Card Title Block */
 .card-title-block {
   margin-bottom: 0.75rem;
 }
@@ -763,7 +736,6 @@ body {
   line-height: 1.45;
 }
 
-/* Target Artifact Monospace Row */
 .card-artifact-row {
   display: flex;
   align-items: center;
@@ -793,7 +765,6 @@ body {
   text-overflow: ellipsis;
 }
 
-/* Highlights */
 .card-highlights {
   display: flex;
   flex-wrap: wrap;
@@ -811,7 +782,6 @@ body {
   border-radius: 4px;
 }
 
-/* Card Description */
 .card-description-excerpt {
   font-size: 0.82rem;
   color: var(--text-muted);
@@ -824,7 +794,6 @@ body {
   flex-grow: 1;
 }
 
-/* Card Actions */
 .card-actions {
   display: flex;
   align-items: center;
@@ -904,9 +873,6 @@ body {
   transform: translateY(-1px);
 }
 
-/* =========================================================
-   Empty State
-   ========================================================= */
 .empty-state-box {
   text-align: center;
   padding: 4rem 2rem;
@@ -964,9 +930,6 @@ body {
   color: var(--accent-cyan);
 }
 
-/* =========================================================
-   Modal Dialog
-   ========================================================= */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -1268,9 +1231,6 @@ body {
   transform: translateY(-1px);
 }
 
-/* =========================================================
-   Footer
-   ========================================================= */
 .site-footer {
   margin-top: auto;
   border-top: 1px solid var(--border-subtle);
@@ -1306,9 +1266,6 @@ body {
   color: var(--accent-cyan);
 }
 
-/* =========================================================
-   Responsive Breakpoints
-   ========================================================= */
 @media (max-width: 1024px) {
   .metrics-grid {
     grid-template-columns: repeat(2, 1fr);

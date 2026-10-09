@@ -26,7 +26,6 @@ export const ToolCard: React.FC<ToolCardProps> = ({ tool, onSelect }) => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // fallback
     }
   };
 
@@ -50,7 +49,6 @@ export const ToolCard: React.FC<ToolCardProps> = ({ tool, onSelect }) => {
     >
       <div className="tool-card-glow" />
 
-      {/* Top Header */}
       <div className="card-top">
         <div className="card-icon-container">
           <ToolIcon name={tool.iconName} size={22} className="card-icon-svg" />
@@ -66,21 +64,18 @@ export const ToolCard: React.FC<ToolCardProps> = ({ tool, onSelect }) => {
         </div>
       </div>
 
-      {/* Tool Title & Tagline */}
       <div className="card-title-block">
         <div className="category-micro">{tool.category}</div>
         <h3 className="card-title">{tool.name}</h3>
         <p className="card-tagline">{tool.tagline}</p>
       </div>
 
-      {/* Target Artifact Monospace Badge */}
       <div className="card-artifact-row">
         <Database size={13} className="text-muted" />
         <span className="artifact-label">Target:</span>
         <span className="artifact-code">{tool.targetArtifact}</span>
       </div>
 
-      {/* Highlights */}
       <div className="card-highlights">
         {tool.highlights.map((item, idx) => (
           <span key={idx} className="highlight-tag">
@@ -89,10 +84,8 @@ export const ToolCard: React.FC<ToolCardProps> = ({ tool, onSelect }) => {
         ))}
       </div>
 
-      {/* Description Excerpt */}
       <p className="card-description-excerpt">{tool.description}</p>
 
-      {/* Card Footer Actions */}
       <div className="card-actions" onClick={(e) => e.stopPropagation()}>
         <button
           className="btn-card-action btn-inspect"

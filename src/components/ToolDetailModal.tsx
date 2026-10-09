@@ -49,7 +49,6 @@ export const ToolDetailModal: React.FC<ToolDetailModalProps> = ({
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     } catch {
-      // fallback
     }
   };
 
@@ -61,7 +60,6 @@ export const ToolDetailModal: React.FC<ToolDetailModalProps> = ({
       setCopiedCommand(true);
       setTimeout(() => setCopiedCommand(false), 2000);
     } catch {
-      // fallback
     }
   };
 
@@ -71,7 +69,6 @@ export const ToolDetailModal: React.FC<ToolDetailModalProps> = ({
         className="modal-container"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Bar */}
         <div className="modal-header">
           <div className="modal-title-row">
             <div className="modal-icon-badge">
@@ -100,15 +97,12 @@ export const ToolDetailModal: React.FC<ToolDetailModalProps> = ({
           </button>
         </div>
 
-        {/* Modal Body */}
         <div className="modal-body">
-          {/* Tagline */}
           <div className="modal-tagline-box">
             <Sparkles size={18} className="text-accent" />
             <p className="modal-tagline">{tool.tagline}</p>
           </div>
 
-          {/* Description */}
           <div className="modal-section">
             <h3 className="modal-section-title">
               <Layers size={16} /> Overview & Purpose
@@ -116,7 +110,6 @@ export const ToolDetailModal: React.FC<ToolDetailModalProps> = ({
             <p className="modal-description">{tool.description}</p>
           </div>
 
-          {/* Target Artifact */}
           <div className="modal-section">
             <h3 className="modal-section-title">
               <Database size={16} /> Target Forensic Artifacts
@@ -126,7 +119,6 @@ export const ToolDetailModal: React.FC<ToolDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Features List */}
           <div className="modal-section">
             <h3 className="modal-section-title">
               <Shield size={16} /> Key Capabilities & Forensic Engine
@@ -143,7 +135,6 @@ export const ToolDetailModal: React.FC<ToolDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Quick PowerShell Download Snippet */}
           <div className="modal-section">
             <div className="modal-cli-header">
               <h3 className="modal-section-title">
@@ -171,7 +162,6 @@ export const ToolDetailModal: React.FC<ToolDetailModalProps> = ({
           </div>
         </div>
 
-        {/* Modal Footer */}
         <div className="modal-footer">
           <button
             className="btn-secondary"

@@ -27,7 +27,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         and PC Checkers. (Showing {filteredCount} tools)
       </p>
 
-      {/* Quick Metrics Bar */}
       <div className="metrics-grid">
         <div className="metric-card">
           <div className="metric-icon-wrap">

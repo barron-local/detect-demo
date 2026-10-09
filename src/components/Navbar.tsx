@@ -16,7 +16,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="site-header">
       <div className="header-container">
-        {/* Brand */}
         <div className="brand-group" onClick={() => onSearchChange("")}>
           <div className="brand-logo-glow">
             <Shield className="brand-icon" size={22} />
@@ -30,7 +29,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Global Search Input in Nav */}
         <div className="nav-search-wrap">
           <Search size={16} className="nav-search-icon" />
           <input
@@ -51,7 +49,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span className="search-shortcut">/</span>
         </div>
 
-        {/* Status and Links */}
         <div className="nav-actions">
           <div className="live-status-pill">
             <span className="pulse-dot" />

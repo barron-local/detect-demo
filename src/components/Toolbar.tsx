@@ -31,7 +31,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 }) => {
   return (
     <div className="toolbar-container">
-      {/* Left: Quick tag filters */}
       <div className="toolbar-tags">
         <span className="toolbar-tag-label">
           <Filter size={13} /> Quick Filter:
@@ -51,7 +50,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         })}
       </div>
 
-      {/* Right: Sort and View Mode */}
       <div className="toolbar-controls">
         <div className="sort-wrapper">
           <span className="category-badge-count">{totalFiltered}</span>
