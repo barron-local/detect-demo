@@ -226,33 +226,51 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
         }
         "saved-files-viewer-plus-plus" => {
             tool_name = "SavedFilesViewer++ (Local Download & Recent Files Artifacts)".to_string();
-            if let Ok(appdata) = std::env::var("APPDATA") {
-                let recent_dir = PathBuf::from(appdata)
-                    .join("Microsoft")
-                    .join("Windows")
-                    .join("Recent");
-                if recent_dir.exists() {
-                    if let Ok(entries) = fs::read_dir(recent_dir) {
-                        for (i, entry) in entries.flatten().take(35).enumerate() {
-                            let path = entry.path();
-                            let fname = path.file_name().and_then(|s| s.to_str()).unwrap_or("").to_string();
-                            let meta = entry.metadata().ok();
-                            let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
-
-                            let mut details = HashMap::new();
-                            details.insert("Shortcut Target".to_string(), path.to_string_lossy().to_string());
-                            details.insert("File Size".to_string(), format!("{} bytes", size));
-
-                            records.push(ForensicScanRecord {
-                                id: format!("recent-{}", i),
-                                primary_text: fname,
-                                secondary_text: path.to_string_lossy().to_string(),
-                                timestamp: now.clone(),
-                                status_tag: "Recent Artifact".to_string(),
-                                risk_level: "Low".to_string(),
-                                details,
-                            });
+            let ps = r#"
+                $shell = New-Object -ComObject WScript.Shell
+                $recent = "$env:APPDATA\Microsoft\Windows\Recent"
+                $results = @()
+                if (Test-Path $recent) {
+                    $files = Get-ChildItem -Path $recent -Filter *.lnk -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 35
+                    foreach ($f in $files) {
+                        $target = ""
+                        try {
+                            $shortcut = $shell.CreateShortcut($f.FullName)
+                            $target = $shortcut.TargetPath
+                        } catch {}
+                        $results += [PSCustomObject]@{
+                            name = $f.Name -replace '\.lnk$', ''
+                            target = $target
+                            time = $f.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
+                            size = $f.Length
                         }
+                    }
+                }
+                $results | ConvertTo-Json -Compress
+            "#;
+            if let Ok(json_str) = execute_powershell(ps) {
+                if let Ok(val) = serde_json::from_str::<serde_json::Value>(&json_str) {
+                    let items = if val.is_array() { val.as_array().unwrap().clone() } else { vec![val] };
+                    for (i, it) in items.iter().enumerate() {
+                        let name = it["name"].as_str().unwrap_or("").to_string();
+                        let target = it["target"].as_str().unwrap_or("").to_string();
+                        let time = it["time"].as_str().unwrap_or(&now).to_string();
+                        let size = it["size"].as_i64().unwrap_or(0);
+
+                        let mut details = HashMap::new();
+                        details.insert("Shortcut Target".to_string(), target.clone());
+                        details.insert("File Size".to_string(), format!("{} bytes", size));
+                        details.insert("Last Accessed".to_string(), time.clone());
+
+                        records.push(ForensicScanRecord {
+                            id: format!("recent-{}", i),
+                            primary_text: name,
+                            secondary_text: target,
+                            timestamp: time,
+                            status_tag: "Recent Artifact".to_string(),
+                            risk_level: "Low".to_string(),
+                            details,
+                        });
                     }
                 }
             }
