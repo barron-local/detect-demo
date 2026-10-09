@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use serde::{Deserialize, Serialize};
+use rusqlite;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ForensicScanRecord {
@@ -569,24 +570,6 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
                         }
                     }
                 } catch {}
-
-                $browserPaths = @(
-                    @{ name = "Chrome"; path = "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\History" },
-                    @{ name = "Edge"; path = "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\History" },
-                    @{ name = "Brave"; path = "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\User Data\Default\History" }
-                )
-                foreach ($b in $browserPaths) {
-                    if (Test-Path $b.path) {
-                        $f = Get-Item $b.path
-                        $history += [PSCustomObject]@{
-                            url = $b.path
-                            title = "$($b.name) History Database"
-                            browser = $b.name
-                            time = $f.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
-                            type = "SQLite DB"
-                        }
-                    }
-                }
                 $history | ConvertTo-Json -Compress
             "#;
             if let Ok(json_str) = execute_powershell(ps) {
@@ -634,6 +617,63 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
                     }
                 }
             }
+
+            if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+                let paths = vec![
+                    ("Chrome", PathBuf::from(&local_app_data).join("Google\\Chrome\\User Data\\Default\\History")),
+                    ("Edge", PathBuf::from(&local_app_data).join("Microsoft\\Edge\\User Data\\Default\\History")),
+                    ("Brave", PathBuf::from(&local_app_data).join("BraveSoftware\\Brave-Browser\\User Data\\Default\\History")),
+                ];
+                
+                for (name, path) in paths {
+                    if path.exists() {
+                        let temp_path = std::env::temp_dir().join(format!("{}_history_tmp.sqlite", name));
+                        if fs::copy(&path, &temp_path).is_ok() {
+                            if let Ok(conn) = rusqlite::Connection::open_with_flags(&temp_path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY) {
+                                if let Ok(mut stmt) = conn.prepare("SELECT url, title FROM urls ORDER BY last_visit_time DESC LIMIT 15") {
+                                    if let Ok(row_iter) = stmt.query_map([], |row| {
+                                        let url: String = row.get(0).unwrap_or_default();
+                                        let title: String = row.get(1).unwrap_or_default();
+                                        Ok((url, title))
+                                    }) {
+                                        let cheat_domains = ["eulen", "redengine", "neverlose", "bypass.fun", "dopium", "vape.gg", "ring-1", "keyser", "susano", "machocheats"];
+                                        for (idx, item) in row_iter.enumerate() {
+                                            if let Ok((url, title)) = item {
+                                                let lower = url.to_lowercase();
+                                                let mut is_sus = false;
+                                                for cd in &cheat_domains {
+                                                    if lower.contains(cd) {
+                                                        is_sus = true;
+                                                        break;
+                                                    }
+                                                }
+                                                
+                                                if is_sus { suspicious_count += 1; }
+                                                
+                                                let mut details = HashMap::new();
+                                                details.insert("Target Resource".to_string(), url.clone());
+                                                details.insert("Artifact Source".to_string(), name.to_string());
+                                                details.insert("Record Type".to_string(), "SQLite URL".to_string());
+                        
+                                                records.push(ForensicScanRecord {
+                                                    id: format!("sqlite-{}-{}", name, idx),
+                                                    primary_text: url,
+                                                    secondary_text: format!("{} | {}", name, title),
+                                                    timestamp: now.clone(),
+                                                    status_tag: if is_sus { "FLAGGED DOMAIN".to_string() } else { format!("Verified {}", name) },
+                                                    risk_level: if is_sus { "High".to_string() } else { "Low".to_string() },
+                                                    details,
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            let _ = fs::remove_file(temp_path);
+                        }
+                    }
+                }
+            }
         }
         "browser-downloads-view-plus-plus" => {
             tool_name = "BrowserDownloadsView++ (Download Origin & MOTW Scanner)".to_string();
@@ -647,9 +687,17 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
                         $zoneStream = Get-Item -Path $f.FullName -Stream 'Zone.Identifier' -ErrorAction SilentlyContinue
                         if ($zoneStream) {
                             $content = Get-Content -Path "$($f.FullName):Zone.Identifier" -ErrorAction SilentlyContinue | Out-String
-                            if ($content -match 'ZoneId=3') { $zone = "Internet (Zone 3 - MOTW)" }
-                            elseif ($content -match 'ZoneId=4') { $zone = "Untrusted Restricted (Zone 4)" }
-                            else { $zone = "Mark of the Web Present" }
+                            $hostUrl = ""
+                            if ($content -match 'HostUrl=([^\r\n]+)') {
+                                $hostUrl = $matches[1].Trim()
+                            }
+                            if ($content -match 'ZoneId=3') { $zone = "Internet" }
+                            elseif ($content -match 'ZoneId=4') { $zone = "Restricted" }
+                            else { $zone = "MOTW Present" }
+                            
+                            if ($hostUrl) {
+                                $zone = "$zone | Origin: $hostUrl"
+                            }
                         }
                         $downloads += [PSCustomObject]@{
                             filename = $f.Name
