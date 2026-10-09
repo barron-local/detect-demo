@@ -1,14 +1,16 @@
 import React from "react";
-import { Shield, Search } from "lucide-react";
+import { Shield, Search, FlaskConical } from "lucide-react";
 
 interface NavbarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onOpenDiagnostics: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   searchQuery,
   onSearchChange,
+  onOpenDiagnostics,
 }) => {
   return (
     <header className="site-header">
@@ -26,24 +28,37 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        <div className="nav-search-wrap">
-          <Search size={16} className="nav-search-icon" />
-          <input
-            type="text"
-            className="nav-search-input"
-            placeholder="Search tools, artifacts ($MFT, BAM, YARA, RAM)..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-          />
-          {searchQuery && (
-            <button
-              className="search-clear-btn"
-              onClick={() => onSearchChange("")}
-            >
-              ×
-            </button>
-          )}
-          <span className="search-shortcut">/</span>
+        <div className="nav-right-actions">
+          <button
+            type="button"
+            className="btn-nav-diagnostics"
+            onClick={onOpenDiagnostics}
+            title="Open Detection Test Suite & Heuristic QA Lab"
+          >
+            <FlaskConical size={14} className="text-cyan" />
+            <span>Detection Test Suite</span>
+          </button>
+
+          <div className="nav-search-wrap">
+            <Search size={16} className="nav-search-icon" />
+            <input
+              type="text"
+              className="nav-search-input"
+              placeholder="Search tools, artifacts ($MFT, BAM, YARA, RAM)..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => onSearchChange("")}
+              >
+                ×
+              </button>
+            )}
+            <span className="search-shortcut">/</span>
+          </div>
         </div>
       </div>
     </header>

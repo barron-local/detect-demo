@@ -6,6 +6,7 @@ import { Toolbar } from "./components/Toolbar";
 import { ToolCard } from "./components/ToolCard";
 import { ToolDetailModal } from "./components/ToolDetailModal";
 import { ScanModal } from "./components/ScanModal";
+import { DiagnosticTestModal } from "./components/DiagnosticTestModal";
 import { SearchX } from "lucide-react";
 import "./App.css";
 
@@ -16,12 +17,13 @@ export function App() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [inspectTool, setInspectTool] = useState<ForensicTool | null>(null);
   const [activeScanTool, setActiveScanTool] = useState<ForensicTool | null>(null);
+  const [isDiagnosticOpen, setIsDiagnosticOpen] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "/" && document.activeElement?.tagName !== "INPUT") {
         e.preventDefault();
-        const input = document.querySelector<HTMLInputElement>(".nav-search-input");
+        const input = document.querySelector<HTMLInputElement>("input.nav-search-input");
         input?.focus();
       }
     };
@@ -83,6 +85,7 @@ export function App() {
       <Navbar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        onOpenDiagnostics={() => setIsDiagnosticOpen(true)}
       />
 
       <main className="main-content">
@@ -138,6 +141,11 @@ export function App() {
       <ScanModal
         tool={activeScanTool}
         onClose={() => setActiveScanTool(null)}
+      />
+
+      <DiagnosticTestModal
+        isOpen={isDiagnosticOpen}
+        onClose={() => setIsDiagnosticOpen(false)}
       />
     </div>
   );
