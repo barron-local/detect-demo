@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { TOOLS_DATA, ToolCategory, ForensicTool } from "./data/toolsData";
 import { Navbar } from "./components/Navbar";
 import { HeroSection } from "./components/HeroSection";
@@ -6,6 +6,7 @@ import { CategoryFilter } from "./components/CategoryFilter";
 import { Toolbar } from "./components/Toolbar";
 import { ToolCard } from "./components/ToolCard";
 import { ToolDetailModal } from "./components/ToolDetailModal";
+import { ScanModal } from "./components/ScanModal";
 import { SearchX } from "lucide-react";
 import { openExternalLink } from "./utils/openUrl";
 import "./App.css";
@@ -16,8 +17,8 @@ export function App() {
   const [activeFeatureFilter, setActiveFeatureFilter] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"name" | "category" | "badge">("name");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [selectedTool, setSelectedTool] = useState<ForensicTool | null>(null);
-  const [runningTools, setRunningTools] = useState<Record<string, boolean>>({});
+  const [inspectTool, setInspectTool] = useState<ForensicTool | null>(null);
+  const [activeScanTool, setActiveScanTool] = useState<ForensicTool | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -30,17 +31,6 @@ export function App() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
-
-  const handleToolStatusChange = useCallback((toolId: string, isRunning: boolean) => {
-    setRunningTools((prev) => ({
-      ...prev,
-      [toolId]: isRunning,
-    }));
-  }, []);
-
-  const runningCount = useMemo(() => {
-    return Object.values(runningTools).filter(Boolean).length;
-  }, [runningTools]);
 
   const filteredTools = useMemo(() => {
     let result = [...TOOLS_DATA];
@@ -75,9 +65,6 @@ export function App() {
     }
 
     result.sort((a, b) => {
-      if (runningTools[a.id] && !runningTools[b.id]) return -1;
-      if (!runningTools[a.id] && runningTools[b.id]) return 1;
-
       if (sortBy === "badge") {
         const priority: Record<string, number> = {
           Featured: 4,
@@ -97,7 +84,7 @@ export function App() {
     });
 
     return result;
-  }, [searchQuery, selectedCategory, activeFeatureFilter, sortBy, runningTools]);
+  }, [searchQuery, selectedCategory, activeFeatureFilter, sortBy]);
 
   const handleResetFilters = () => {
     setSearchQuery("");
@@ -111,7 +98,6 @@ export function App() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         toolCount={TOOLS_DATA.length}
-        runningCount={runningCount}
       />
 
       <main className="main-content">
@@ -141,9 +127,8 @@ export function App() {
               <ToolCard
                 key={tool.id}
                 tool={tool}
-                onSelect={setSelectedTool}
-                isRunning={!!runningTools[tool.id]}
-                onStatusChange={handleToolStatusChange}
+                onSelect={setInspectTool}
+                onOpenScanner={setActiveScanTool}
               />
             ))}
           </div>
@@ -165,16 +150,23 @@ export function App() {
       </main>
 
       <ToolDetailModal
-        tool={selectedTool}
-        onClose={() => setSelectedTool(null)}
-        isRunning={selectedTool ? !!runningTools[selectedTool.id] : false}
-        onStatusChange={handleToolStatusChange}
+        tool={inspectTool}
+        onClose={() => setInspectTool(null)}
+        onRunScan={(tool) => {
+          setInspectTool(null);
+          setActiveScanTool(tool);
+        }}
+      />
+
+      <ScanModal
+        tool={activeScanTool}
+        onClose={() => setActiveScanTool(null)}
       />
 
       <footer className="site-footer">
         <div className="footer-content">
           <div>
-            <span>© 2026 DETECT.AC — Built with Tauri & React for PC Checkers & Forensic Analysts.</span>
+            <span>© 2026 DETECT.AC — Built-in Standalone Forensic Engine for PC Checkers & Analysts.</span>
           </div>
           <div className="footer-links">
             <button
@@ -187,7 +179,7 @@ export function App() {
               className="footer-link btn-link-plain"
               onClick={() => openExternalLink("https://detect.ac/tools")}
             >
-              All Tools Catalog
+              Forensic Framework
             </button>
           </div>
         </div>

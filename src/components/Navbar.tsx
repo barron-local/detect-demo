@@ -1,19 +1,16 @@
 import React from "react";
-import { Shield, FolderOpen, Search } from "lucide-react";
-import { openToolsFolder } from "../services/toolRunner";
+import { Shield, Search, Activity } from "lucide-react";
 
 interface NavbarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   toolCount: number;
-  runningCount: number;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   searchQuery,
   onSearchChange,
   toolCount,
-  runningCount,
 }) => {
   return (
     <header className="site-header">
@@ -25,9 +22,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="brand-text-block">
             <div className="brand-title-row">
               <span className="brand-name">DETECT<span className="brand-accent">.AC</span></span>
-              <span className="brand-badge">RUNNER</span>
+              <span className="brand-badge">NATIVE SUITE</span>
             </div>
-            <span className="brand-sub">Native Windows Forensic Launcher</span>
+            <span className="brand-sub">Standalone Forensic & Anti-Cheat Analysis Engine</span>
           </div>
         </div>
 
@@ -52,26 +49,15 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         <div className="nav-actions">
-          {runningCount > 0 ? (
-            <div className="live-status-pill pill-running">
-              <span className="pulse-dot-mini" />
-              <span className="status-text">{runningCount} Running</span>
-            </div>
-          ) : (
-            <div className="live-status-pill">
-              <span className="pulse-dot" />
-              <span className="status-text">{toolCount} Ready to Run</span>
-            </div>
-          )}
+          <div className="live-status-pill">
+            <span className="pulse-dot" />
+            <span className="status-text">{toolCount} Built-in Scanners</span>
+          </div>
 
-          <button
-            className="nav-link-btn"
-            onClick={() => openToolsFolder()}
-            title="Open local tools directory in Explorer"
-          >
-            <FolderOpen size={14} />
-            <span>Tools Directory</span>
-          </button>
+          <div className="badge-pill badge-core flex-pill">
+            <Activity size={13} />
+            <span>100% Local Processing</span>
+          </div>
         </div>
       </div>
     </header>
