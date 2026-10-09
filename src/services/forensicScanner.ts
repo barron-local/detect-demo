@@ -20,6 +20,14 @@ export interface ScanOutput {
   summary_message: string;
 }
 
+export interface FullSystemAuditReport {
+  audit_time: string;
+  total_tools_scanned: number;
+  total_artifacts_analyzed: number;
+  total_suspicious_flagged: number;
+  modules_results: ScanOutput[];
+}
+
 export interface DiagnosticTestCaseResult {
   test_id: string;
   category: string;
@@ -75,6 +83,10 @@ export async function runForensicScan(
       summary_message: `Scan execution: ${errorStr}`,
     };
   }
+}
+
+export async function runAllForensicScans(): Promise<FullSystemAuditReport> {
+  return await invoke<FullSystemAuditReport>("run_all_forensic_scans");
 }
 
 export async function runForensicDiagnosticsSuite(): Promise<DiagnosticsSuiteResult> {

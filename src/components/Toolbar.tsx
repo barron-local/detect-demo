@@ -1,5 +1,5 @@
 import React from "react";
-import { SlidersHorizontal, Grid, List } from "lucide-react";
+import { SlidersHorizontal, Grid, List, Zap } from "lucide-react";
 
 interface ToolbarProps {
   sortBy: "name" | "category" | "badge";
@@ -7,6 +7,7 @@ interface ToolbarProps {
   viewMode: "grid" | "list";
   onViewModeChange: (mode: "grid" | "list") => void;
   totalFiltered: number;
+  onOpenFullAudit?: () => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
@@ -15,11 +16,23 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   viewMode,
   onViewModeChange,
   totalFiltered,
+  onOpenFullAudit,
 }) => {
   return (
     <div className="toolbar-container">
       <div className="toolbar-left">
         <span className="toolbar-count-badge">{totalFiltered} modules</span>
+        {onOpenFullAudit && (
+          <button
+            type="button"
+            className="toolbar-audit-btn"
+            onClick={onOpenFullAudit}
+            title="Scan and aggregate live results for all 17 tools"
+          >
+            <Zap size={13} className="text-cyan" />
+            <span>Audit All 17 Tools</span>
+          </button>
+        )}
       </div>
 
       <div className="toolbar-controls">
@@ -40,6 +53,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
         <div className="view-mode-toggle">
           <button
+            type="button"
             className={`view-btn ${viewMode === "grid" ? "active" : ""}`}
             onClick={() => onViewModeChange("grid")}
             title="Grid View"
@@ -47,6 +61,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <Grid size={14} />
           </button>
           <button
+            type="button"
             className={`view-btn ${viewMode === "list" ? "active" : ""}`}
             onClick={() => onViewModeChange("list")}
             title="List View"

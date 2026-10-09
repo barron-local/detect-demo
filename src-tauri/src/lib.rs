@@ -15,7 +15,7 @@ pub struct ForensicScanRecord {
     pub details: HashMap<String, String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ScanOutput {
     pub tool_id: String,
     pub tool_name: String,
@@ -24,6 +24,15 @@ pub struct ScanOutput {
     pub suspicious_count: usize,
     pub records: Vec<ForensicScanRecord>,
     pub summary_message: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct FullSystemAuditReport {
+    pub audit_time: String,
+    pub total_tools_scanned: usize,
+    pub total_artifacts_analyzed: usize,
+    pub total_suspicious_flagged: usize,
+    pub modules_results: Vec<ScanOutput>,
 }
 
 fn execute_powershell(script: &str) -> Result<String, String> {
@@ -1430,6 +1439,50 @@ fn evaluate_custom_artifact(artifact_type: String, input_data: String) -> Result
     })
 }
 
+#[tauri::command]
+fn run_all_forensic_scans() -> Result<FullSystemAuditReport, String> {
+    let now = get_now_timestamp();
+    let all_tool_ids = vec![
+        "autoruns-plus-plus",
+        "string-explorer-plus-plus",
+        "moss-2-0",
+        "win-prefetch-view-plus-plus",
+        "usb-deview-plus-plus",
+        "saved-files-viewer-plus-plus",
+        "power-shell-parser-plus-plus",
+        "paths-parser-plus-plus",
+        "mft-explorer-plus-plus",
+        "kernel-live-dump-plus-plus",
+        "journal-trace-plus-plus",
+        "crashed-file-viewer-plus-plus",
+        "browsing-history-view-plus-plus",
+        "browser-downloads-view-plus-plus",
+        "bam-parser-plus-plus",
+        "amcache-parser-plus-plus",
+        "srum-explorer-plus-plus",
+    ];
+
+    let mut modules_results = Vec::new();
+    let mut total_artifacts = 0;
+    let mut total_suspicious = 0;
+
+    for id in all_tool_ids {
+        if let Ok(res) = run_forensic_scan(id.to_string(), None) {
+            total_artifacts += res.total_items;
+            total_suspicious += res.suspicious_count;
+            modules_results.push(res);
+        }
+    }
+
+    Ok(FullSystemAuditReport {
+        audit_time: now,
+        total_tools_scanned: modules_results.len(),
+        total_artifacts_analyzed: total_artifacts,
+        total_suspicious_flagged: total_suspicious,
+        modules_results,
+    })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1437,7 +1490,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             run_forensic_scan,
             run_forensic_diagnostics_suite,
-            evaluate_custom_artifact
+            evaluate_custom_artifact,
+            run_all_forensic_scans
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -7,6 +7,7 @@ import { ToolCard } from "./components/ToolCard";
 import { ToolDetailModal } from "./components/ToolDetailModal";
 import { ScanModal } from "./components/ScanModal";
 import { DiagnosticTestModal } from "./components/DiagnosticTestModal";
+import { FullAuditModal } from "./components/FullAuditModal";
 import { SearchX } from "lucide-react";
 import "./App.css";
 
@@ -18,6 +19,7 @@ export function App() {
   const [inspectTool, setInspectTool] = useState<ForensicTool | null>(null);
   const [activeScanTool, setActiveScanTool] = useState<ForensicTool | null>(null);
   const [isDiagnosticOpen, setIsDiagnosticOpen] = useState(false);
+  const [isFullAuditOpen, setIsFullAuditOpen] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -86,6 +88,7 @@ export function App() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onOpenDiagnostics={() => setIsDiagnosticOpen(true)}
+        onOpenFullAudit={() => setIsFullAuditOpen(true)}
       />
 
       <main className="main-content">
@@ -100,6 +103,7 @@ export function App() {
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           totalFiltered={filteredTools.length}
+          onOpenFullAudit={() => setIsFullAuditOpen(true)}
         />
 
         {filteredTools.length > 0 ? (
@@ -146,6 +150,11 @@ export function App() {
       <DiagnosticTestModal
         isOpen={isDiagnosticOpen}
         onClose={() => setIsDiagnosticOpen(false)}
+      />
+
+      <FullAuditModal
+        isOpen={isFullAuditOpen}
+        onClose={() => setIsFullAuditOpen(false)}
       />
     </div>
   );
