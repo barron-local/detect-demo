@@ -1,15 +1,8 @@
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
-use tauri::State;
-
-#[derive(Default)]
-pub struct AppState {
-    pub running_processes: Mutex<HashMap<String, u32>>,
-}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ForensicScanRecord {
@@ -54,14 +47,272 @@ fn execute_powershell(script: &str) -> Result<String, String> {
     }
 }
 
+fn get_now_timestamp() -> String {
+    #[cfg(target_os = "windows")]
+    {
+        let ps = "[DateTime]::Now.ToString('yyyy-MM-dd HH:mm:ss')";
+        execute_powershell(ps).unwrap_or_else(|_| "2026-10-10 02:00:00".to_string())
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        "2026-10-10 02:00:00".to_string()
+    }
+}
+
 #[tauri::command]
 fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Result<ScanOutput, String> {
-    let now = chrono_timestamp();
+    let now = get_now_timestamp();
     let mut records: Vec<ForensicScanRecord> = Vec::new();
     let mut suspicious_count = 0;
     let tool_name: String;
 
     match tool_id.as_str() {
+        "power-shell-parser-plus-plus" => {
+            tool_name = "PowerShellParser++ (Deep History Scraper)".to_string();
+            if let Ok(appdata) = std::env::var("APPDATA") {
+                let hist_path = PathBuf::from(&appdata)
+                    .join("Microsoft")
+                    .join("Windows")
+                    .join("PowerShell")
+                    .join("PSReadLine")
+                    .join("ConsoleHost_history.txt");
+
+                if hist_path.exists() {
+                    if let Ok(content) = fs::read_to_string(&hist_path) {
+                        let lines: Vec<&str> = content.lines().filter(|l| !l.trim().is_empty()).collect();
+                        let total_lines = lines.len();
+                        
+                        for (i, line) in lines.iter().rev().take(100).enumerate() {
+                            let raw_cmd = line.trim().to_string();
+                            let lower = raw_cmd.to_lowercase();
+                            let mut is_sus = false;
+                            let mut reasons = Vec::new();
+
+                            if lower.contains("-enc") || lower.contains("frombase64") || lower.contains("encodedcommand") {
+                                is_sus = true;
+                                reasons.push("Base64 Encoded Payload");
+                            }
+                            if lower.contains("bypass") || lower.contains("-ep bypass") || lower.contains("executionpolicy") {
+                                is_sus = true;
+                                reasons.push("Execution Policy Bypass");
+                            }
+                            if lower.contains("downloadstring") || lower.contains("invoke-webrequest") || lower.contains("iwr") || lower.contains("wget") || lower.contains("bitstransfer") {
+                                is_sus = true;
+                                reasons.push("Remote File Download");
+                            }
+                            if lower.contains("invoke-expression") || lower.contains("iex") || lower.contains(".invoke(") || lower.contains("reflection.assembly") {
+                                is_sus = true;
+                                reasons.push("Dynamic In-Memory Invocation");
+                            }
+                            if lower.contains("-windowstyle hidden") || lower.contains("-w 1") || lower.contains("-w hidden") {
+                                is_sus = true;
+                                reasons.push("Hidden Window Mode");
+                            }
+
+                            let risk = if is_sus {
+                                suspicious_count += 1;
+                                "High"
+                            } else {
+                                "Low"
+                            };
+
+                            let mut details = HashMap::new();
+                            details.insert("Artifact Source".to_string(), "ConsoleHost_history.txt".to_string());
+                            details.insert("Command Line #".to_string(), (total_lines - i).to_string());
+                            details.insert("Full Command".to_string(), raw_cmd.clone());
+                            details.insert("Flagged Indicators".to_string(), if reasons.is_empty() { "Standard Command".to_string() } else { reasons.join(", ") });
+
+                            records.push(ForensicScanRecord {
+                                id: format!("ps-{}", i),
+                                primary_text: raw_cmd.clone(),
+                                secondary_text: format!("Line {} in ConsoleHost_history.txt", total_lines - i),
+                                timestamp: now.clone(),
+                                status_tag: if is_sus { "FLAGGED".to_string() } else { "Clean".to_string() },
+                                risk_level: risk.to_string(),
+                                details,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        "win-prefetch-view-plus-plus" => {
+            tool_name = "WinPrefetchView++ (Prefetch Artifact Engine)".to_string();
+            let pf_dir = Path::new("C:\\Windows\\Prefetch");
+            if pf_dir.exists() {
+                if let Ok(entries) = fs::read_dir(pf_dir) {
+                    let mut file_list = Vec::new();
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("pf") {
+                            if let Ok(meta) = entry.metadata() {
+                                file_list.push((path, meta));
+                            }
+                        }
+                    }
+
+                    file_list.sort_by(|a, b| {
+                        b.1.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH)
+                            .cmp(&a.1.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH))
+                    });
+
+                    for (i, (path, meta)) in file_list.iter().take(40).enumerate() {
+                        let fname = path.file_name().and_then(|s| s.to_str()).unwrap_or("unknown.pf").to_string();
+                        let size = meta.len();
+                        let is_recent = i < 10;
+
+                        let mut details = HashMap::new();
+                        details.insert("File Size".to_string(), format!("{} bytes", size));
+                        details.insert("Prefetch Hash".to_string(), fname.split('-').last().unwrap_or("").replace(".pf", ""));
+                        details.insert("Full Path".to_string(), path.to_string_lossy().to_string());
+
+                        records.push(ForensicScanRecord {
+                            id: format!("pf-{}", i),
+                            primary_text: fname,
+                            secondary_text: format!("Size: {} B | Location: C:\\Windows\\Prefetch", size),
+                            timestamp: now.clone(),
+                            status_tag: if is_recent { "RECENT (PINK)".to_string() } else { "Archived".to_string() },
+                            risk_level: "Low".to_string(),
+                            details,
+                        });
+                    }
+                }
+            }
+        }
+        "paths-parser-plus-plus" => {
+            tool_name = "PathsParser++ (System Path & Hijack Inspector)".to_string();
+            if let Ok(path_var) = std::env::var("PATH") {
+                let paths: Vec<&str> = path_var.split(';').filter(|p| !p.trim().is_empty()).collect();
+                for (i, p) in paths.iter().enumerate() {
+                    let exists = Path::new(p).exists();
+                    let is_user_writable = p.to_lowercase().contains("users") || p.to_lowercase().contains("temp") || p.to_lowercase().contains("appdata");
+                    
+                    let risk = if !exists {
+                        suspicious_count += 1;
+                        "Medium"
+                    } else if is_user_writable {
+                        suspicious_count += 1;
+                        "Medium"
+                    } else {
+                        "Low"
+                    };
+
+                    let mut details = HashMap::new();
+                    details.insert("Folder Exists".to_string(), exists.to_string());
+                    details.insert("User Writable".to_string(), is_user_writable.to_string());
+                    details.insert("Path Variable Index".to_string(), i.to_string());
+
+                    records.push(ForensicScanRecord {
+                        id: format!("path-{}", i),
+                        primary_text: p.to_string(),
+                        secondary_text: if !exists { "Missing Directory (Dangling Path)".to_string() } else if is_user_writable { "User-Writable Location (Potential Hijack Risk)".to_string() } else { "Valid System Path".to_string() },
+                        timestamp: now.clone(),
+                        status_tag: if !exists { "MISSING".to_string() } else if is_user_writable { "WRITABLE".to_string() } else { "Valid".to_string() },
+                        risk_level: risk.to_string(),
+                        details,
+                    });
+                }
+            }
+        }
+        "saved-files-viewer-plus-plus" => {
+            tool_name = "SavedFilesViewer++ (Local Download & Recent Files Artifacts)".to_string();
+            if let Ok(appdata) = std::env::var("APPDATA") {
+                let recent_dir = PathBuf::from(appdata)
+                    .join("Microsoft")
+                    .join("Windows")
+                    .join("Recent");
+                if recent_dir.exists() {
+                    if let Ok(entries) = fs::read_dir(recent_dir) {
+                        for (i, entry) in entries.flatten().take(35).enumerate() {
+                            let path = entry.path();
+                            let fname = path.file_name().and_then(|s| s.to_str()).unwrap_or("").to_string();
+                            let meta = entry.metadata().ok();
+                            let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+
+                            let mut details = HashMap::new();
+                            details.insert("Shortcut Target".to_string(), path.to_string_lossy().to_string());
+                            details.insert("File Size".to_string(), format!("{} bytes", size));
+
+                            records.push(ForensicScanRecord {
+                                id: format!("recent-{}", i),
+                                primary_text: fname,
+                                secondary_text: path.to_string_lossy().to_string(),
+                                timestamp: now.clone(),
+                                status_tag: "Recent Artifact".to_string(),
+                                risk_level: "Low".to_string(),
+                                details,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        "crashed-file-viewer-plus-plus" => {
+            tool_name = "CrashedFileViewer++ (Windows Error Reporting & Crash Dumps)".to_string();
+            let mut crash_paths = Vec::new();
+            if let Ok(local) = std::env::var("LOCALAPPDATA") {
+                crash_paths.push(PathBuf::from(local).join("CrashDumps"));
+            }
+            crash_paths.push(PathBuf::from("C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportArchive"));
+
+            let mut idx = 0;
+            for dir in crash_paths {
+                if dir.exists() {
+                    if let Ok(entries) = fs::read_dir(dir) {
+                        for entry in entries.flatten().take(25) {
+                            let path = entry.path();
+                            let fname = path.file_name().and_then(|s| s.to_str()).unwrap_or("").to_string();
+                            let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
+
+                            let mut details = HashMap::new();
+                            details.insert("Dump Size".to_string(), format!("{} bytes", size));
+                            details.insert("Full Path".to_string(), path.to_string_lossy().to_string());
+
+                            records.push(ForensicScanRecord {
+                                id: format!("crash-{}", idx),
+                                primary_text: fname,
+                                secondary_text: path.to_string_lossy().to_string(),
+                                timestamp: now.clone(),
+                                status_tag: "Crash Minidump".to_string(),
+                                risk_level: "Low".to_string(),
+                                details,
+                            });
+                            idx += 1;
+                        }
+                    }
+                }
+            }
+        }
+        "string-explorer-plus-plus" => {
+            tool_name = "StringExplorer++ (Entropy & Binary Strings)".to_string();
+            let target = target_param.unwrap_or_else(|| "C:\\Windows\\explorer.exe".to_string());
+            let (entropy, sample_strings) = analyze_file_strings_and_entropy(&target);
+            let risk = if entropy > 7.2 {
+                suspicious_count += 1;
+                "High"
+            } else if entropy > 6.5 {
+                "Medium"
+            } else {
+                "Low"
+            };
+
+            for (i, s) in sample_strings.iter().enumerate() {
+                let mut details = HashMap::new();
+                details.insert("Shannon Entropy Score".to_string(), format!("{:.4} / 8.0000", entropy));
+                details.insert("Target Binary".to_string(), target.clone());
+                details.insert("Extracted String".to_string(), s.clone());
+
+                records.push(ForensicScanRecord {
+                    id: format!("str-{}", i),
+                    primary_text: s.clone(),
+                    secondary_text: format!("Target: {} (Entropy: {:.2})", target, entropy),
+                    timestamp: now.clone(),
+                    status_tag: if entropy > 7.0 { "HIGH ENTROPY".to_string() } else { "Normal".to_string() },
+                    risk_level: risk.to_string(),
+                    details,
+                });
+            }
+        }
         "autoruns-plus-plus" => {
             tool_name = "Autoruns++ (Startup & Persistence Scanner)".to_string();
             let ps = r#"
@@ -133,66 +384,6 @@ fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Result<Sc
                 }
             }
         }
-        "power-shell-parser-plus-plus" => {
-            tool_name = "PowerShellParser++ (Deep History Scraper)".to_string();
-            let ps = r#"
-                $histPath = "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt"
-                $lines = @()
-                if (Test-Path $histPath) {
-                    $raw = Get-Content $histPath -Tail 80
-                    $idx = 0
-                    foreach ($line in $raw) {
-                        $idx++
-                        $isSus = $false
-                        $reasons = @()
-                        if ($line -match '(-enc|encodedcommand|frombase64)') { $isSus = $true; $reasons += "Base64 Encoded" }
-                        if ($line -match '(bypass|-ep\s+bypass|executionpolicy\s+bypass)') { $isSus = $true; $reasons += "Bypass Flag" }
-                        if ($line -match '(downloadstring|iwr|curl|invoke-webrequest|wget|bitstransfer)') { $isSus = $true; $reasons += "Remote Download" }
-                        if ($line -match '(iex|invoke-expression|\.invoke\(|reflection\.assembly)') { $isSus = $true; $reasons += "Dynamic Memory Invocation" }
-                        if ($line -match '(hidden|-w\s+1|-windowstyle\s+hidden)') { $isSus = $true; $reasons += "Hidden Window" }
-                        
-                        $lines += [PSCustomObject]@{
-                            id = "ps-$idx"
-                            cmd = $line
-                            isSus = $isSus
-                            reason = ($reasons -join ', ')
-                        }
-                    }
-                }
-                $lines | ConvertTo-Json -Compress
-            "#;
-            if let Ok(json_str) = execute_powershell(ps) {
-                if let Ok(val) = serde_json::from_str::<serde_json::Value>(&json_str) {
-                    let items = if val.is_array() { val.as_array().unwrap().clone() } else { vec![val] };
-                    for (i, it) in items.iter().enumerate() {
-                        let cmd = it["cmd"].as_str().unwrap_or("").to_string();
-                        let is_sus = it["isSus"].as_bool().unwrap_or(false);
-                        let reason = it["reason"].as_str().unwrap_or("").to_string();
-
-                        let risk = if is_sus {
-                            suspicious_count += 1;
-                            "High"
-                        } else {
-                            "Low"
-                        };
-
-                        let mut details = HashMap::new();
-                        details.insert("Artifact Source".to_string(), "ConsoleHost_history.txt".to_string());
-                        details.insert("Flagged Indicators".to_string(), if reason.is_empty() { "Standard Command".to_string() } else { reason });
-
-                        records.push(ForensicScanRecord {
-                            id: format!("ps-line-{}", i),
-                            primary_text: cmd.chars().take(80).collect(),
-                            secondary_text: cmd,
-                            timestamp: now.clone(),
-                            status_tag: if is_sus { "FLAGGED".to_string() } else { "Clean".to_string() },
-                            risk_level: risk.to_string(),
-                            details,
-                        });
-                    }
-                }
-            }
-        }
         "usb-deview-plus-plus" => {
             tool_name = "USBDeview++ (DMA & USB Forensic Inspector)".to_string();
             let ps = r#"
@@ -200,19 +391,13 @@ fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Result<Sc
                 $key = "HKLM:\SYSTEM\CurrentControlSet\Enum\USBSTOR"
                 if (Test-Path $key) {
                     $devices = Get-ChildItem -Path $key -ErrorAction SilentlyContinue
-                    $i = 0
                     foreach ($d in $devices) {
                         $instances = Get-ChildItem -Path $d.PSPath -ErrorAction SilentlyContinue
                         foreach ($inst in $instances) {
-                            $i++
                             $props = Get-ItemProperty -Path $inst.PSPath -ErrorAction SilentlyContinue
                             $fname = $props.FriendlyName
                             if (!$fname) { $fname = $d.PSChildName }
                             $hwId = $props.HardwareID
-                            $isClean = $true
-                            if ($d.PSChildName -match '(?i)(flash|disk|storage|dma)') {
-                                $isClean = $true
-                            }
                             $usbList += [PSCustomObject]@{
                                 name = [string]$fname
                                 id = [string]$inst.PSChildName
@@ -249,85 +434,6 @@ fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Result<Sc
                         });
                     }
                 }
-            }
-        }
-        "win-prefetch-view-plus-plus" => {
-            tool_name = "WinPrefetchView++ (Prefetch Artifact Engine)".to_string();
-            let ps = r#"
-                $pfDir = "C:\Windows\Prefetch"
-                $pfList = @()
-                if (Test-Path $pfDir) {
-                    $files = Get-ChildItem -Path $pfDir -Filter "*.pf" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 40
-                    $idx = 0
-                    foreach ($f in $files) {
-                        $idx++
-                        $isPink = $false
-                        if ($f.LastWriteTime -gt (Get-Date).AddHours(-24)) { $isPink = $true }
-                        $pfList += [PSCustomObject]@{
-                            name = $f.Name
-                            size = $f.Length
-                            modified = $f.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
-                            isRecent = $isPink
-                        }
-                    }
-                }
-                $pfList | ConvertTo-Json -Compress
-            "#;
-            if let Ok(json_str) = execute_powershell(ps) {
-                if let Ok(val) = serde_json::from_str::<serde_json::Value>(&json_str) {
-                    let items = if val.is_array() { val.as_array().unwrap().clone() } else { vec![val] };
-                    for (i, it) in items.iter().enumerate() {
-                        let name = it["name"].as_str().unwrap_or("").to_string();
-                        let size = it["size"].as_i64().unwrap_or(0);
-                        let modified = it["modified"].as_str().unwrap_or("").to_string();
-                        let is_recent = it["isRecent"].as_bool().unwrap_or(false);
-
-                        let mut details = HashMap::new();
-                        details.insert("File Size".to_string(), format!("{} bytes", size));
-                        details.insert("Prefetch Hash".to_string(), name.split('-').last().unwrap_or("").replace(".pf", ""));
-                        details.insert("Execution Timestamp".to_string(), modified.clone());
-
-                        records.push(ForensicScanRecord {
-                            id: format!("pf-{}", i),
-                            primary_text: name,
-                            secondary_text: format!("Size: {} B | Last modified: {}", size, modified),
-                            timestamp: modified,
-                            status_tag: if is_recent { "RECENT (PINK)".to_string() } else { "Archived".to_string() },
-                            risk_level: if is_recent { "Low".to_string() } else { "Low".to_string() },
-                            details,
-                        });
-                    }
-                }
-            }
-        }
-        "string-explorer-plus-plus" => {
-            tool_name = "StringExplorer++ (Entropy & Binary Strings)".to_string();
-            let target = target_param.unwrap_or_else(|| "C:\\Windows\\explorer.exe".to_string());
-            let (entropy, sample_strings) = analyze_file_strings_and_entropy(&target);
-            let risk = if entropy > 7.2 {
-                suspicious_count += 1;
-                "High"
-            } else if entropy > 6.5 {
-                "Medium"
-            } else {
-                "Low"
-            };
-
-            for (i, s) in sample_strings.iter().enumerate() {
-                let mut details = HashMap::new();
-                details.insert("Shannon Entropy Score".to_string(), format!("{:.4} / 8.0000", entropy));
-                details.insert("Target Binary".to_string(), target.clone());
-                details.insert("String Type".to_string(), "Extracted ASCII / Unicode".to_string());
-
-                records.push(ForensicScanRecord {
-                    id: format!("str-{}", i),
-                    primary_text: s.clone(),
-                    secondary_text: format!("Target: {} (Entropy: {:.2})", target, entropy),
-                    timestamp: now.clone(),
-                    status_tag: if entropy > 7.0 { "HIGH ENTROPY" } else { "Normal" }.to_string(),
-                    risk_level: risk.to_string(),
-                    details,
-                });
             }
         }
         "kernel-live-dump-plus-plus" => {
@@ -428,58 +534,8 @@ fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Result<Sc
                             primary_text: format!("{} : {}", file, stream),
                             secondary_text: path,
                             timestamp: now.clone(),
-                            status_tag: if is_zone { "Zone.Identifier (Download Mark)" } else { "CUSTOM ADS STREAM" }.to_string(),
+                            status_tag: if is_zone { "Zone.Identifier (Download Mark)".to_string() } else { "CUSTOM ADS STREAM".to_string() },
                             risk_level: risk.to_string(),
-                            details,
-                        });
-                    }
-                }
-            }
-        }
-        "crashed-file-viewer-plus-plus" => {
-            tool_name = "CrashedFileViewer++ (Windows Error Reporting & Crash Dumps)".to_string();
-            let ps = r#"
-                $crashPaths = @(
-                    "$env:LOCALAPPDATA\CrashDumps",
-                    "C:\ProgramData\Microsoft\Windows\WER\ReportArchive"
-                )
-                $list = @()
-                foreach ($p in $crashPaths) {
-                    if (Test-Path $p) {
-                        $files = Get-ChildItem -Path $p -Recurse -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 30
-                        foreach ($f in $files) {
-                            $list += [PSCustomObject]@{
-                                name = $f.Name
-                                path = $f.FullName
-                                size = $f.Length
-                                time = $f.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")
-                            }
-                        }
-                    }
-                }
-                $list | ConvertTo-Json -Compress
-            "#;
-            if let Ok(json_str) = execute_powershell(ps) {
-                if let Ok(val) = serde_json::from_str::<serde_json::Value>(&json_str) {
-                    let items = if val.is_array() { val.as_array().unwrap().clone() } else { vec![val] };
-                    for (i, it) in items.iter().enumerate() {
-                        let name = it["name"].as_str().unwrap_or("").to_string();
-                        let path = it["path"].as_str().unwrap_or("").to_string();
-                        let size = it["size"].as_i64().unwrap_or(0);
-                        let time = it["time"].as_str().unwrap_or("").to_string();
-
-                        let mut details = HashMap::new();
-                        details.insert("Dump Size".to_string(), format!("{} bytes", size));
-                        details.insert("Crash Timestamp".to_string(), time.clone());
-                        details.insert("Location".to_string(), path.clone());
-
-                        records.push(ForensicScanRecord {
-                            id: format!("crash-{}", i),
-                            primary_text: name,
-                            secondary_text: path,
-                            timestamp: time,
-                            status_tag: "Crash Artifact".to_string(),
-                            risk_level: "Low".to_string(),
                             details,
                         });
                     }
@@ -587,23 +643,10 @@ fn analyze_file_strings_and_entropy(path: &str) -> (f64, Vec<String>) {
     }
 }
 
-fn chrono_timestamp() -> String {
-    #[cfg(target_os = "windows")]
-    {
-        let ps = "[DateTime]::Now.ToString('yyyy-MM-dd HH:mm:ss')";
-        execute_powershell(ps).unwrap_or_else(|_| "2026-10-10 02:00:00".to_string())
-    }
-    #[cfg(not(target_os = "windows"))]
-    {
-        "2026-10-10 02:00:00".to_string()
-    }
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             run_forensic_scan
         ])
