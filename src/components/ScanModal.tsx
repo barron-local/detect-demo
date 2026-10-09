@@ -115,7 +115,7 @@ export const ScanModal: React.FC<ScanModalProps> = ({ tool, onClose }) => {
               disabled={loading}
               title="Re-run Scanner"
             >
-              <RefreshCw size={16} className={loading ? "spin-icon" : ""} />
+              <RefreshCw size={16} className={loading ? "spin-icon" : ""} color="white" />
             </button>
             <button
               className="modal-close-btn"
@@ -294,7 +294,7 @@ export const ScanModal: React.FC<ScanModalProps> = ({ tool, onClose }) => {
             onClick={() => executeScan(customTarget)}
             disabled={loading}
           >
-            <RefreshCw size={16} className={loading ? "spin-icon" : ""} />
+            <RefreshCw size={16} className={loading ? "spin-icon" : ""} color="white" />
             <span style={{ color: "white" }}>Re-Scan Artifacts</span>
           </button>
         </div>
