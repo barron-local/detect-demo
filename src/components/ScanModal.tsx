@@ -151,7 +151,7 @@ export const ScanModal: React.FC<ScanModalProps> = ({ tool, onClose }) => {
 
           {loading ? (
             <div className="scan-loading-box">
-              <Activity size={36} className="text-cyan pulse-dot-mini" />
+
               <h4 className="scan-loading-title">Scanning Windows Forensic Artifacts...</h4>
               <p className="scan-loading-subtitle">
                 Querying {tool.targetArtifact} directly via native forensic engine
