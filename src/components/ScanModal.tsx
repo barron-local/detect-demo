@@ -295,7 +295,7 @@ export const ScanModal: React.FC<ScanModalProps> = ({ tool, onClose }) => {
             disabled={loading}
           >
             <RefreshCw size={16} className={loading ? "spin-icon" : ""} />
-            <span>Re-Scan Artifacts</span>
+            <span style={{ color: "white" }}>Re-Scan Artifacts</span>
           </button>
         </div>
       </div>
