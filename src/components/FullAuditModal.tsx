@@ -64,7 +64,7 @@ export const FullAuditModal: React.FC<FullAuditModalProps> = ({ isOpen, onClose 
   const handleCopyTextReport = () => {
     if (!auditReport) return;
     let text = `=======================================================\n`;
-    text += `DETECT.AC COMPREHENSIVE 17-MODULE FORENSIC AUDIT REPORT\n`;
+    text += `DETECT.DEMO COMPREHENSIVE 17-MODULE FORENSIC AUDIT REPORT\n`;
     text += `Timestamp: ${auditReport.audit_time}\n`;
     text += `Total Modules Scanned: ${auditReport.total_tools_scanned}\n`;
     text += `Total Artifact Records: ${auditReport.total_artifacts_analyzed}\n`;

@@ -22,7 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Shield className="brand-icon" size={22} />
           </div>
           <div className="brand-text-block">
-            <span className="brand-name">DETECT<span className="brand-accent">.AC</span></span>
+            <span className="brand-name">DETECT<span className="brand-accent">.DEMO</span></span>
           </div>
         </div>
 

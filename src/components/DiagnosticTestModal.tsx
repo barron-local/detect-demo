@@ -91,7 +91,7 @@ export const DiagnosticTestModal: React.FC<DiagnosticTestModalProps> = ({
 
   const handleCopyReport = () => {
     if (!suiteResult) return;
-    const text = `DETECT.AC FORENSIC ENGINE DIAGNOSTIC REPORT\nTimestamp: ${suiteResult.suite_time}\nTotal Tests: ${suiteResult.total_tests}\nDetection Rate: ${suiteResult.detection_rate}%\nFalse Positive Rate: ${suiteResult.false_positive_rate}%\nLatency: ${suiteResult.execution_time_ms}ms\n\n${suiteResult.test_results.map((t) => `[${t.passed ? "PASS" : "FAIL"}] ${t.test_id} (${t.module_tested}): ${t.description} -> ${t.actual_classification} [${t.matched_indicators.join(", ")}]`).join("\n")}`;
+    const text = `DETECT.DEMO FORENSIC ENGINE DIAGNOSTIC REPORT\nTimestamp: ${suiteResult.suite_time}\nTotal Tests: ${suiteResult.total_tests}\nDetection Rate: ${suiteResult.detection_rate}%\nFalse Positive Rate: ${suiteResult.false_positive_rate}%\nLatency: ${suiteResult.execution_time_ms}ms\n\n${suiteResult.test_results.map((t) => `[${t.passed ? "PASS" : "FAIL"}] ${t.test_id} (${t.module_tested}): ${t.description} -> ${t.actual_classification} [${t.matched_indicators.join(", ")}]`).join("\n")}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
