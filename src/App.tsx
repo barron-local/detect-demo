@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { TOOLS_DATA, ToolCategory, ForensicTool } from "./data/toolsData";
 import { Navbar } from "./components/Navbar";
 import { HeroSection } from "./components/HeroSection";
@@ -17,6 +17,7 @@ export function App() {
   const [sortBy, setSortBy] = useState<"name" | "category" | "badge">("name");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedTool, setSelectedTool] = useState<ForensicTool | null>(null);
+  const [runningTools, setRunningTools] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -29,6 +30,17 @@ export function App() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  const handleToolStatusChange = useCallback((toolId: string, isRunning: boolean) => {
+    setRunningTools((prev) => ({
+      ...prev,
+      [toolId]: isRunning,
+    }));
+  }, []);
+
+  const runningCount = useMemo(() => {
+    return Object.values(runningTools).filter(Boolean).length;
+  }, [runningTools]);
 
   const filteredTools = useMemo(() => {
     let result = [...TOOLS_DATA];
@@ -63,6 +75,9 @@ export function App() {
     }
 
     result.sort((a, b) => {
+      if (runningTools[a.id] && !runningTools[b.id]) return -1;
+      if (!runningTools[a.id] && runningTools[b.id]) return 1;
+
       if (sortBy === "badge") {
         const priority: Record<string, number> = {
           Featured: 4,
@@ -82,7 +97,7 @@ export function App() {
     });
 
     return result;
-  }, [searchQuery, selectedCategory, activeFeatureFilter, sortBy]);
+  }, [searchQuery, selectedCategory, activeFeatureFilter, sortBy, runningTools]);
 
   const handleResetFilters = () => {
     setSearchQuery("");
@@ -96,6 +111,7 @@ export function App() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         toolCount={TOOLS_DATA.length}
+        runningCount={runningCount}
       />
 
       <main className="main-content">
@@ -126,6 +142,8 @@ export function App() {
                 key={tool.id}
                 tool={tool}
                 onSelect={setSelectedTool}
+                isRunning={!!runningTools[tool.id]}
+                onStatusChange={handleToolStatusChange}
               />
             ))}
           </div>
@@ -149,6 +167,8 @@ export function App() {
       <ToolDetailModal
         tool={selectedTool}
         onClose={() => setSelectedTool(null)}
+        isRunning={selectedTool ? !!runningTools[selectedTool.id] : false}
+        onStatusChange={handleToolStatusChange}
       />
 
       <footer className="site-footer">

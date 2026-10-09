@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { ForensicTool } from "../data/toolsData";
 import { ToolIcon } from "./ToolIcon";
-import { openExternalLink } from "../utils/openUrl";
+import { launchTool, killTool, openToolsFolder } from "../services/toolRunner";
 import {
   X,
-  Download,
+  Play,
+  Square,
+  Loader2,
+  FolderOpen,
   Copy,
   Check,
-  ExternalLink,
   Shield,
   Layers,
   Terminal,
@@ -18,14 +20,19 @@ import {
 interface ToolDetailModalProps {
   tool: ForensicTool | null;
   onClose: () => void;
+  isRunning?: boolean;
+  onStatusChange?: (toolId: string, running: boolean, msg?: string) => void;
 }
 
 export const ToolDetailModal: React.FC<ToolDetailModalProps> = ({
   tool,
   onClose,
+  isRunning = false,
+  onStatusChange,
 }) => {
+  const [loading, setLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [copiedCommand, setCopiedCommand] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -43,6 +50,32 @@ export const ToolDetailModal: React.FC<ToolDetailModalProps> = ({
 
   if (!tool) return null;
 
+  const handleLaunch = async () => {
+    if (loading) return;
+
+    if (isRunning) {
+      setLoading(true);
+      await killTool(tool.id);
+      setLoading(false);
+      onStatusChange?.(tool.id, false, "Process stopped");
+      setStatusMessage("Tool process terminated");
+      return;
+    }
+
+    setLoading(true);
+    setStatusMessage("Checking binary & launching process...");
+    const res = await launchTool(tool);
+    setLoading(false);
+
+    if (res.success) {
+      onStatusChange?.(tool.id, true, res.message);
+      setStatusMessage(res.message);
+    } else {
+      onStatusChange?.(tool.id, false, res.message);
+      setStatusMessage(`Launch failed: ${res.message}`);
+    }
+  };
+
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(tool.downloadUrl);
@@ -52,23 +85,9 @@ export const ToolDetailModal: React.FC<ToolDetailModalProps> = ({
     }
   };
 
-  const powershellCommand = `Invoke-WebRequest -Uri "${tool.downloadUrl}" -OutFile "${tool.name}.exe"`;
-
-  const handleCopyCommand = async () => {
-    try {
-      await navigator.clipboard.writeText(powershellCommand);
-      setCopiedCommand(true);
-      setTimeout(() => setCopiedCommand(false), 2000);
-    } catch {
-    }
-  };
-
   return (
     <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
-      <div
-        className="modal-container"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-title-row">
             <div className="modal-icon-badge">
@@ -78,10 +97,16 @@ export const ToolDetailModal: React.FC<ToolDetailModalProps> = ({
               <div className="modal-title-wrap">
                 <h2 className="modal-title">{tool.name}</h2>
                 <span className="modal-version-tag">{tool.version}</span>
-                {tool.badge && (
-                  <span className={`badge-pill badge-${tool.badge.toLowerCase()}`}>
-                    {tool.badge}
+                {isRunning ? (
+                  <span className="badge-pill badge-running">
+                    <span className="pulse-dot-mini" /> RUNNING
                   </span>
+                ) : (
+                  tool.badge && (
+                    <span className={`badge-pill badge-${tool.badge.toLowerCase()}`}>
+                      {tool.badge}
+                    </span>
+                  )
                 )}
               </div>
               <p className="modal-category">{tool.category}</p>
@@ -135,55 +160,65 @@ export const ToolDetailModal: React.FC<ToolDetailModalProps> = ({
             </div>
           </div>
 
-          <div className="modal-section">
-            <div className="modal-cli-header">
-              <h3 className="modal-section-title">
-                <Terminal size={16} /> PowerShell Quick Download
-              </h3>
-              <button
-                className="cli-copy-btn"
-                onClick={handleCopyCommand}
-                title="Copy Command"
-              >
-                {copiedCommand ? (
-                  <>
-                    <Check size={14} className="text-emerald" /> Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy size={14} /> Copy Command
-                  </>
-                )}
-              </button>
+          {statusMessage && (
+            <div className="modal-status-terminal">
+              <div className="terminal-header">
+                <Terminal size={14} />
+                <span>Execution Status</span>
+              </div>
+              <div className="terminal-body">
+                <code>{statusMessage}</code>
+              </div>
             </div>
-            <pre className="modal-cli-box">
-              <code>{powershellCommand}</code>
-            </pre>
-          </div>
+          )}
         </div>
 
         <div className="modal-footer">
+          <button
+            className="btn-secondary"
+            onClick={() => openToolsFolder()}
+            title="Open local tools cache folder"
+          >
+            <FolderOpen size={16} />
+            <span>Tools Folder</span>
+          </button>
+
           <button
             className="btn-secondary"
             onClick={handleCopyLink}
           >
             {copiedLink ? (
               <>
-                <Check size={16} className="text-emerald" /> Link Copied
+                <Check size={16} className="text-emerald" /> Copied
               </>
             ) : (
               <>
-                <Copy size={16} /> Copy URL
+                <Copy size={16} /> URL
               </>
             )}
           </button>
+
           <button
-            className="btn-primary"
-            onClick={() => openExternalLink(tool.downloadUrl)}
+            className={`btn-primary ${isRunning ? "btn-stop" : ""}`}
+            onClick={handleLaunch}
+            disabled={loading}
           >
-            <Download size={16} />
-            <span>Download {tool.name}</span>
-            <ExternalLink size={14} className="opacity-70" />
+            {loading ? (
+              <>
+                <Loader2 size={16} className="spin-icon" />
+                <span>Processing...</span>
+              </>
+            ) : isRunning ? (
+              <>
+                <Square size={16} />
+                <span>Stop {tool.name}</span>
+              </>
+            ) : (
+              <>
+                <Play size={16} fill="currentColor" />
+                <span>Run {tool.name}</span>
+              </>
+            )}
           </button>
         </div>
       </div>

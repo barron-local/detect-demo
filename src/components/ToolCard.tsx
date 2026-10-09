@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import { ForensicTool } from "../data/toolsData";
 import { ToolIcon } from "./ToolIcon";
-import { openExternalLink } from "../utils/openUrl";
+import { launchTool, killTool } from "../services/toolRunner";
 import {
-  Download,
-  Copy,
-  Check,
-  ExternalLink,
+  Play,
+  Square,
+  Loader2,
   ChevronRight,
   Database,
 } from "lucide-react";
@@ -14,29 +13,52 @@ import {
 interface ToolCardProps {
   tool: ForensicTool;
   onSelect: (tool: ForensicTool) => void;
+  isRunning?: boolean;
+  onStatusChange?: (toolId: string, running: boolean, msg?: string) => void;
 }
 
-export const ToolCard: React.FC<ToolCardProps> = ({ tool, onSelect }) => {
-  const [copied, setCopied] = useState(false);
+export const ToolCard: React.FC<ToolCardProps> = ({
+  tool,
+  onSelect,
+  isRunning = false,
+  onStatusChange,
+}) => {
+  const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
-  const handleCopy = async (e: React.MouseEvent) => {
+  const handleLaunch = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(tool.downloadUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
+    if (loading) return;
+
+    if (isRunning) {
+      setLoading(true);
+      await killTool(tool.id);
+      setLoading(false);
+      onStatusChange?.(tool.id, false, "Process stopped");
+      setFeedback("Stopped");
+      setTimeout(() => setFeedback(null), 2500);
+      return;
     }
-  };
 
-  const handleDownload = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    openExternalLink(tool.downloadUrl);
+    setLoading(true);
+    setFeedback("Preparing & Launching...");
+    const res = await launchTool(tool);
+    setLoading(false);
+
+    if (res.success) {
+      onStatusChange?.(tool.id, true, res.message);
+      setFeedback("Running");
+      setTimeout(() => setFeedback(null), 3000);
+    } else {
+      onStatusChange?.(tool.id, false, res.message);
+      setFeedback("Failed to launch");
+      setTimeout(() => setFeedback(null), 3500);
+    }
   };
 
   return (
     <article
-      className="tool-card"
+      className={`tool-card ${isRunning ? "card-running" : ""}`}
       onClick={() => onSelect(tool)}
       role="button"
       tabIndex={0}
@@ -47,7 +69,7 @@ export const ToolCard: React.FC<ToolCardProps> = ({ tool, onSelect }) => {
         }
       }}
     >
-      <div className="tool-card-glow" />
+      <div className={`tool-card-glow ${isRunning ? "glow-active" : ""}`} />
 
       <div className="card-top">
         <div className="card-icon-container">
@@ -55,10 +77,16 @@ export const ToolCard: React.FC<ToolCardProps> = ({ tool, onSelect }) => {
         </div>
 
         <div className="card-meta-tags">
-          {tool.badge && (
-            <span className={`badge-pill badge-${tool.badge.toLowerCase()}`}>
-              {tool.badge}
+          {isRunning ? (
+            <span className="badge-pill badge-running">
+              <span className="pulse-dot-mini" /> RUNNING
             </span>
+          ) : (
+            tool.badge && (
+              <span className={`badge-pill badge-${tool.badge.toLowerCase()}`}>
+                {tool.badge}
+              </span>
+            )
           )}
           <span className="version-pill">{tool.version}</span>
         </div>
@@ -86,6 +114,12 @@ export const ToolCard: React.FC<ToolCardProps> = ({ tool, onSelect }) => {
 
       <p className="card-description-excerpt">{tool.description}</p>
 
+      {feedback && (
+        <div className={`card-feedback-banner ${feedback === "Running" ? "fb-success" : ""}`}>
+          <span>{feedback}</span>
+        </div>
+      )}
+
       <div className="card-actions" onClick={(e) => e.stopPropagation()}>
         <button
           className="btn-card-action btn-inspect"
@@ -98,25 +132,27 @@ export const ToolCard: React.FC<ToolCardProps> = ({ tool, onSelect }) => {
 
         <div className="card-action-group">
           <button
-            className="btn-icon-action"
-            onClick={handleCopy}
-            title={copied ? "Link Copied!" : "Copy Download Link"}
+            className={`btn-card-run ${isRunning ? "btn-stop" : ""}`}
+            onClick={handleLaunch}
+            disabled={loading}
+            title={isRunning ? `Stop ${tool.name}` : `Run ${tool.name} directly`}
           >
-            {copied ? (
-              <Check size={15} className="text-emerald" />
+            {loading ? (
+              <>
+                <Loader2 size={14} className="spin-icon" />
+                <span>Launching...</span>
+              </>
+            ) : isRunning ? (
+              <>
+                <Square size={13} />
+                <span>Stop Tool</span>
+              </>
             ) : (
-              <Copy size={15} />
+              <>
+                <Play size={13} fill="currentColor" />
+                <span>Run Tool</span>
+              </>
             )}
-          </button>
-
-          <button
-            className="btn-card-download"
-            onClick={handleDownload}
-            title={`Download ${tool.name}`}
-          >
-            <Download size={14} />
-            <span>Download</span>
-            <ExternalLink size={12} className="opacity-70" />
           </button>
         </div>
       </div>

@@ -1,17 +1,19 @@
 import React from "react";
-import { Shield, ExternalLink, Search } from "lucide-react";
-import { openExternalLink } from "../utils/openUrl";
+import { Shield, FolderOpen, Search } from "lucide-react";
+import { openToolsFolder } from "../services/toolRunner";
 
 interface NavbarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   toolCount: number;
+  runningCount: number;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   searchQuery,
   onSearchChange,
   toolCount,
+  runningCount,
 }) => {
   return (
     <header className="site-header">
@@ -23,9 +25,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="brand-text-block">
             <div className="brand-title-row">
               <span className="brand-name">DETECT<span className="brand-accent">.AC</span></span>
-              <span className="brand-badge">SUITE</span>
+              <span className="brand-badge">RUNNER</span>
             </div>
-            <span className="brand-sub">Windows Forensics & Anti-Cheat Analysis</span>
+            <span className="brand-sub">Native Windows Forensic Launcher</span>
           </div>
         </div>
 
@@ -50,18 +52,25 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         <div className="nav-actions">
-          <div className="live-status-pill">
-            <span className="pulse-dot" />
-            <span className="status-text">{toolCount} Tools Active</span>
-          </div>
+          {runningCount > 0 ? (
+            <div className="live-status-pill pill-running">
+              <span className="pulse-dot-mini" />
+              <span className="status-text">{runningCount} Running</span>
+            </div>
+          ) : (
+            <div className="live-status-pill">
+              <span className="pulse-dot" />
+              <span className="status-text">{toolCount} Ready to Run</span>
+            </div>
+          )}
 
           <button
             className="nav-link-btn"
-            onClick={() => openExternalLink("https://detect.ac")}
-            title="Visit detect.ac official website"
+            onClick={() => openToolsFolder()}
+            title="Open local tools directory in Explorer"
           >
-            <span>detect.ac</span>
-            <ExternalLink size={13} />
+            <FolderOpen size={14} />
+            <span>Tools Directory</span>
           </button>
         </div>
       </div>
