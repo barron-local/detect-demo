@@ -28,29 +28,6 @@ export interface FullSystemAuditReport {
   modules_results: ScanOutput[];
 }
 
-export interface DiagnosticTestCaseResult {
-  test_id: string;
-  category: string;
-  module_tested: string;
-  description: string;
-  input_vector: string;
-  expected_classification: string;
-  actual_classification: string;
-  matched_indicators: string[];
-  passed: boolean;
-  latency_ms: number;
-  forensic_explanation: string;
-}
-
-export interface DiagnosticsSuiteResult {
-  suite_time: string;
-  total_tests: number;
-  passed_tests: number;
-  detection_rate: number;
-  false_positive_rate: number;
-  test_results: DiagnosticTestCaseResult[];
-  execution_time_ms: number;
-}
 
 export interface CustomEvaluationResult {
   input_data: string;
@@ -89,9 +66,7 @@ export async function runAllForensicScans(): Promise<FullSystemAuditReport> {
   return await invoke<FullSystemAuditReport>("run_all_forensic_scans");
 }
 
-export async function runForensicDiagnosticsSuite(): Promise<DiagnosticsSuiteResult> {
-  return await invoke<DiagnosticsSuiteResult>("run_forensic_diagnostics_suite");
-}
+
 
 export async function evaluateCustomArtifact(
   artifactType: string,

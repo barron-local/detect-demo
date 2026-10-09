@@ -6,7 +6,6 @@ import { Toolbar } from "./components/Toolbar";
 import { ToolCard } from "./components/ToolCard";
 import { ToolDetailModal } from "./components/ToolDetailModal";
 import { ScanModal } from "./components/ScanModal";
-import { DiagnosticTestModal } from "./components/DiagnosticTestModal";
 import { FullAuditModal } from "./components/FullAuditModal";
 import { SearchX } from "lucide-react";
 import "./App.css";
@@ -18,7 +17,6 @@ export function App() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [inspectTool, setInspectTool] = useState<ForensicTool | null>(null);
   const [activeScanTool, setActiveScanTool] = useState<ForensicTool | null>(null);
-  const [isDiagnosticOpen, setIsDiagnosticOpen] = useState(false);
   const [isFullAuditOpen, setIsFullAuditOpen] = useState(false);
 
   useEffect(() => {
@@ -87,7 +85,6 @@ export function App() {
       <Navbar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onOpenDiagnostics={() => setIsDiagnosticOpen(true)}
         onOpenFullAudit={() => setIsFullAuditOpen(true)}
       />
 
@@ -145,11 +142,6 @@ export function App() {
       <ScanModal
         tool={activeScanTool}
         onClose={() => setActiveScanTool(null)}
-      />
-
-      <DiagnosticTestModal
-        isOpen={isDiagnosticOpen}
-        onClose={() => setIsDiagnosticOpen(false)}
       />
 
       <FullAuditModal

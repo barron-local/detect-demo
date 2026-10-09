@@ -1,17 +1,15 @@
 import React from "react";
-import { Shield, Search, FlaskConical, Zap } from "lucide-react";
+import { Shield, Search, Zap } from "lucide-react";
 
 interface NavbarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  onOpenDiagnostics: () => void;
   onOpenFullAudit: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   searchQuery,
   onSearchChange,
-  onOpenDiagnostics,
   onOpenFullAudit,
 }) => {
   return (
@@ -37,15 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>Run All 17 Tools</span>
           </button>
 
-          <button
-            type="button"
-            className="btn-nav-diagnostics"
-            onClick={onOpenDiagnostics}
-            title="Open Detection Test Suite & Heuristic QA Lab"
-          >
-            <FlaskConical size={14} className="text-emerald" />
-            <span>Test Suite</span>
-          </button>
+
 
           <div className="nav-search-wrap">
             <Search size={16} className="nav-search-icon" />

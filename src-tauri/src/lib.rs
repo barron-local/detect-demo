@@ -92,7 +92,7 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
                         let lines: Vec<&str> = content.lines().filter(|l| !l.trim().is_empty()).collect();
                         let total_lines = lines.len();
                         
-                        for (i, line) in lines.iter().rev().take(100).enumerate() {
+                        for (i, line) in lines.iter().rev().enumerate() {
                             let raw_cmd = line.trim().to_string();
                             let lower = raw_cmd.to_lowercase();
                             let mut is_sus = false;
@@ -166,7 +166,7 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
                             .cmp(&a.1.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH))
                     });
 
-                    for (i, (path, meta)) in file_list.iter().take(40).enumerate() {
+                    for (i, (path, meta)) in file_list.iter().enumerate() {
                         let fname = path.file_name().and_then(|s| s.to_str()).unwrap_or("unknown.pf").to_string();
                         let size = meta.len();
                         let is_recent = i < 10;
@@ -231,7 +231,7 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
                 $recent = "$env:APPDATA\Microsoft\Windows\Recent"
                 $results = @()
                 if (Test-Path $recent) {
-                    $files = Get-ChildItem -Path $recent -Filter *.lnk -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 35
+                    $files = Get-ChildItem -Path $recent -Filter *.lnk -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending
                     foreach ($f in $files) {
                         $target = ""
                         try {
@@ -287,7 +287,7 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
             for dir in crash_paths {
                 if dir.exists() {
                     if let Ok(entries) = fs::read_dir(dir) {
-                        for entry in entries.flatten().take(25) {
+                        for entry in entries.flatten() {
                             let path = entry.path();
                             let fname = path.file_name().and_then(|s| s.to_str()).unwrap_or("").to_string();
                             let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
@@ -485,7 +485,7 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
         "kernel-live-dump-plus-plus" => {
             tool_name = "KernelLiveDump++ (Live Process Memory Inspector)".to_string();
             let ps = r#"
-                Get-Process | Sort-Object WorkingSet64 -Descending | Select-Object -First 35 | ForEach-Object {
+                Get-Process | Sort-Object WorkingSet64 -Descending | ForEach-Object {
                     [PSCustomObject]@{
                         name = $_.ProcessName
                         id = $_.Id
@@ -535,7 +535,7 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
                 )
                 foreach ($p in $scanPaths) {
                     if (Test-Path $p) {
-                        $files = Get-ChildItem -Path $p -File -ErrorAction SilentlyContinue | Select-Object -First 25
+                        $files = Get-ChildItem -Path $p -File -ErrorAction SilentlyContinue
                         foreach ($f in $files) {
                             $streams = Get-Item -Path $f.FullName -Stream * -ErrorAction SilentlyContinue
                             foreach ($s in $streams) {
@@ -593,7 +593,7 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
             let ps = r#"
                 $history = @()
                 try {
-                    $dns = Get-DnsClientCache -ErrorAction SilentlyContinue | Select-Object -First 40
+                    $dns = Get-DnsClientCache -ErrorAction SilentlyContinue
                     foreach ($d in $dns) {
                         if ($d.Name -and $d.Name -notmatch '^\s*$') {
                             $history += [PSCustomObject]@{
@@ -666,7 +666,7 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
                         let temp_path = std::env::temp_dir().join(format!("{}_history_tmp.sqlite", name));
                         if fs::copy(&path, &temp_path).is_ok() {
                             if let Ok(conn) = rusqlite::Connection::open_with_flags(&temp_path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY) {
-                                if let Ok(mut stmt) = conn.prepare("SELECT url, title FROM urls ORDER BY last_visit_time DESC LIMIT 15") {
+                                if let Ok(mut stmt) = conn.prepare("SELECT url, title FROM urls ORDER BY last_visit_time DESC") {
                                     if let Ok(row_iter) = stmt.query_map([], |row| {
                                         let url: String = row.get(0).unwrap_or_default();
                                         let title: String = row.get(1).unwrap_or_default();
@@ -717,7 +717,7 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
                 $downloads = @()
                 $dlPath = "$env:USERPROFILE\Downloads"
                 if (Test-Path $dlPath) {
-                    $files = Get-ChildItem -Path $dlPath -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 30
+                    $files = Get-ChildItem -Path $dlPath -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending
                     foreach ($f in $files) {
                         $zone = "Local / Direct"
                         $zoneStream = Get-Item -Path $f.FullName -Stream 'Zone.Identifier' -ErrorAction SilentlyContinue
@@ -832,7 +832,7 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
                         }
                     }
                 }
-                $bamEntries | Select-Object -First 40 | ConvertTo-Json -Compress
+                $bamEntries | ConvertTo-Json -Compress
             "#;
             if let Ok(json_str) = execute_powershell(ps) {
                 if let Ok(val) = serde_json::from_str::<serde_json::Value>(&json_str) {
@@ -893,7 +893,7 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
                 )
                 foreach ($k in $keys) {
                     if (Test-Path $k) {
-                        $sub = Get-ChildItem -Path $k -ErrorAction SilentlyContinue | Select-Object -First 25
+                        $sub = Get-ChildItem -Path $k -ErrorAction SilentlyContinue
                         foreach ($s in $sub) {
                             $prop = Get-ItemProperty -Path $s.PSPath -ErrorAction SilentlyContinue
                             $dn = $prop.DisplayName
@@ -910,7 +910,7 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
                         }
                     }
                 }
-                $amcache | Select-Object -First 35 | ConvertTo-Json -Compress
+                $amcache | ConvertTo-Json -Compress
             "#;
             if let Ok(json_str) = execute_powershell(ps) {
                 if let Ok(val) = serde_json::from_str::<serde_json::Value>(&json_str) {
@@ -944,7 +944,7 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
             tool_name = "SRUMExplorer++ (Network Telemetry & Active Socket Forensics)".to_string();
             let ps = r#"
                 $srum = @()
-                $connections = Get-NetTCPConnection -State Established -ErrorAction SilentlyContinue | Select-Object -First 30
+                $connections = Get-NetTCPConnection -State Established -ErrorAction SilentlyContinue
                 foreach ($c in $connections) {
                     $proc = Get-Process -Id $c.OwningProcess -ErrorAction SilentlyContinue
                     $pname = if ($proc) { $proc.ProcessName } else { "PID $($c.OwningProcess)" }
@@ -1100,7 +1100,7 @@ async fn run_forensic_scan(tool_id: String, target_param: Option<String>) -> Res
         _ => {
             tool_name = format!("Forensic Scanner ({})", tool_id);
             let ps = r#"
-                $procs = Get-Process | Select-Object -First 15
+                $procs = Get-Process
                 $res = @()
                 foreach ($p in $procs) {
                     $res += [PSCustomObject]@{
@@ -1182,9 +1182,6 @@ fn analyze_file_strings_and_entropy(path: &str) -> (f64, Vec<String>) {
                     if let Ok(s) = String::from_utf8(current.clone()) {
                         if !strings.contains(&s) {
                             strings.push(s);
-                            if strings.len() >= 40 {
-                                break;
-                            }
                         }
                     }
                 }
@@ -1199,32 +1196,6 @@ fn analyze_file_strings_and_entropy(path: &str) -> (f64, Vec<String>) {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct DiagnosticTestCaseResult {
-    pub test_id: String,
-    pub category: String,
-    pub module_tested: String,
-    pub description: String,
-    pub input_vector: String,
-    pub expected_classification: String,
-    pub actual_classification: String,
-    pub matched_indicators: Vec<String>,
-    pub passed: bool,
-    pub latency_ms: u64,
-    pub forensic_explanation: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct DiagnosticsSuiteResult {
-    pub suite_time: String,
-    pub total_tests: usize,
-    pub passed_tests: usize,
-    pub detection_rate: f64,
-    pub false_positive_rate: f64,
-    pub test_results: Vec<DiagnosticTestCaseResult>,
-    pub execution_time_ms: u64,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
 pub struct CustomEvaluationResult {
     pub input_data: String,
     pub artifact_type: String,
@@ -1233,171 +1204,6 @@ pub struct CustomEvaluationResult {
     pub matched_rules: Vec<String>,
     pub forensic_breakdown: String,
     pub recommended_action: String,
-}
-
-#[tauri::command]
-async fn run_forensic_diagnostics_suite() -> Result<DiagnosticsSuiteResult, String> {
-    let now = get_now_timestamp();
-    let start_time = std::time::Instant::now();
-    let mut results = Vec::new();
-
-    let tests = vec![
-        (
-            "TC-01",
-            "Game Injection",
-            "WinPrefetchView++ / BAMParser++",
-            "FiveM redEngine Lua Executor Signature Detection",
-            "C:\\Users\\AppData\\Local\\Temp\\redengine_v2.exe",
-            "Suspicious",
-            vec!["Signature match: 'redengine'", "Unsigned binary in temporary execution path", "Direct FiveM memory hook candidate"],
-            "Detected malicious pattern against known FiveM cheat database.",
-        ),
-        (
-            "TC-02",
-            "Network C2 & Auth",
-            "DNSQuerySniffer++",
-            "Eulen FiveM Authentication & Telemetry DNS Query",
-            "auth.eulen.cc [Record: A, TTL: 60s]",
-            "Suspicious",
-            vec!["Known cheat authentication domain (eulen.cc)", "Unusual short TTL DNS query during game session"],
-            "Identified residual DNS lookup linked to paid FiveM menu authentication server.",
-        ),
-        (
-            "TC-03",
-            "Game Internal",
-            "ProcessExplorer++ / YARA",
-            "Neverlose CS2 Internal Injection & Unbacked Code",
-            "cs2.exe -> Memory Region: 0x7FFA0000 (PAGE_EXECUTE_READWRITE, Unbacked)",
-            "Suspicious",
-            vec!["Unbacked executable memory page in game process", "PAGE_EXECUTE_READWRITE protection flag", "Neverlose string signature found in committed memory"],
-            "Detected unbacked shellcode injection inside protected game memory space.",
-        ),
-        (
-            "TC-04",
-            "Scripting & Delivery",
-            "PowerShellParser++",
-            "PowerShell Encoded Cradle & Execution Policy Bypass",
-            "powershell.exe -ExecutionPolicy Bypass -NoProfile -enc SUVYIChOZXctT2JqZWN0IE5ldC5XZWJDbGllbnQp",
-            "Suspicious",
-            vec!["Base64 encoded command string", "ExecutionPolicy Bypass flag", "IEX WebClient download cradle signature"],
-            "Parsed and decoded PowerShell command history containing obfuscated staging payload.",
-        ),
-        (
-            "TC-05",
-            "Anti-Forensics",
-            "EventViewerParser++",
-            "Security Event Log Audit Clearing (Event 1102)",
-            "Event ID: 1102 (The audit log was cleared by Administrator)",
-            "Suspicious",
-            vec!["Event ID 1102 (Security Log Cleared)", "Active forensic trace destruction indicator"],
-            "Identified explicit log wiping event used by anti-forensic cleaning tools.",
-        ),
-        (
-            "TC-06",
-            "Anti-Forensics",
-            "USNJournallViewer++",
-            "NTFS USN Journal Deletion & Truncation",
-            "fsutil.exe usn deletejournal /d C:",
-            "Suspicious",
-            vec!["USN Journal forced deletion command", "Volume change record zeroed out"],
-            "Detected attempt to eliminate NTFS file alteration history.",
-        ),
-        (
-            "TC-07",
-            "File System & NTFS",
-            "AlternateDataStreams++",
-            "Hidden DLL in Executable Stream (ADS)",
-            "C:\\Windows\\Temp\\client.exe:hiddencheat.dll [Size: 524KB]",
-            "Suspicious",
-            vec!["Executable binary located in Alternate Data Stream", "Hidden stream size > 100KB"],
-            "Uncovered hidden payload concealed within NTFS secondary stream.",
-        ),
-        (
-            "TC-08",
-            "Game Ghost Client",
-            "StringExplorer++ / JVM Inspector",
-            "Vape V4 Minecraft Ghost Client String Artifacts",
-            "javaw.exe -> Strings: 'vape.v4', 'AimAssist', 'Reach', 'AutoclickerModule'",
-            "Suspicious",
-            vec!["Minecraft ghost client class identifiers", "AimAssist and Reach module strings in heap"],
-            "Verified presence of injected ghost client modules in Java Virtual Machine memory.",
-        ),
-        (
-            "TC-09",
-            "Kernel Exploitation",
-            "ServiceManager++",
-            "Vulnerable Kernel Driver BYOVD Abuse (GigaByte GDRV)",
-            "Service: gdrv.sys (GigaByte Speed Driver - CVE-2018-19320)",
-            "Suspicious",
-            vec!["Known vulnerable signed kernel driver (BYOVD)", "Arbitrary physical memory read/write capability"],
-            "Detected vulnerable driver leveraged to disable kernel callbacks and bypass anti-cheats.",
-        ),
-        (
-            "TC-10",
-            "Graphics & Overlay",
-            "DirectXTextureHunter++",
-            "ImGui Overlay Hook inside Game Window",
-            "D3D11 Present Hook: 0x7FFA12345678 (Outside dxgi.dll)",
-            "Suspicious",
-            vec!["Present hook address points to dynamically allocated memory", "ImGui font texture uploaded to GPU"],
-            "Detected ESP / Visual overlay drawing directly onto DirectX swap chain.",
-        ),
-        (
-            "TC-11",
-            "Baseline Validation",
-            "DigitalSignatureVerifier",
-            "Clean Microsoft System Binary (svchost.exe)",
-            "C:\\Windows\\System32\\svchost.exe",
-            "Clean",
-            vec!["Valid Microsoft Windows Production PCA 2011 signature", "Located in trusted System32 path"],
-            "Confirmed valid system process with clean baseline verification (0% False Positive).",
-        ),
-        (
-            "TC-12",
-            "Baseline Validation",
-            "ProcessExplorer++",
-            "Clean Windows Shell Process (explorer.exe)",
-            "C:\\Windows\\explorer.exe",
-            "Clean",
-            vec!["Valid Microsoft Corporation signature", "Standard user desktop session", "No rogue injected threads"],
-            "Baseline clean verification confirmed without false flags.",
-        ),
-    ];
-
-    let total = tests.len();
-    let mut passed_count = 0;
-
-    for t in tests {
-        let (id, cat, module, desc, input_vec, expected, indicators, explanation) = t;
-        let actual = expected.to_string();
-        passed_count += 1;
-
-        results.push(DiagnosticTestCaseResult {
-            test_id: id.to_string(),
-            category: cat.to_string(),
-            module_tested: module.to_string(),
-            description: desc.to_string(),
-            input_vector: input_vec.to_string(),
-            expected_classification: expected.to_string(),
-            actual_classification: actual,
-            matched_indicators: indicators.into_iter().map(|s| s.to_string()).collect(),
-            passed: true,
-            latency_ms: 12 + (results.len() as u64 * 4),
-            forensic_explanation: explanation.to_string(),
-        });
-    }
-
-    let elapsed = start_time.elapsed().as_millis() as u64;
-
-    Ok(DiagnosticsSuiteResult {
-        suite_time: now,
-        total_tests: total,
-        passed_tests: passed_count,
-        detection_rate: 100.0,
-        false_positive_rate: 0.0,
-        test_results: results,
-        execution_time_ms: elapsed.max(50),
-    })
 }
 
 #[tauri::command]
@@ -1573,7 +1379,6 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             run_forensic_scan,
-            run_forensic_diagnostics_suite,
             evaluate_custom_artifact,
             run_all_forensic_scans
         ])
