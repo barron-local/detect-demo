@@ -8,7 +8,6 @@ import { ToolCard } from "./components/ToolCard";
 import { ToolDetailModal } from "./components/ToolDetailModal";
 import { ScanModal } from "./components/ScanModal";
 import { SearchX } from "lucide-react";
-import { openExternalLink } from "./utils/openUrl";
 import "./App.css";
 
 export function App() {
@@ -146,28 +145,6 @@ export function App() {
         tool={activeScanTool}
         onClose={() => setActiveScanTool(null)}
       />
-
-      <footer className="site-footer">
-        <div className="footer-content">
-          <div>
-            <span>© 2026 DETECT.AC — Built-in Standalone Forensic Engine</span>
-          </div>
-          <div className="footer-links">
-            <button
-              className="footer-link btn-link-plain"
-              onClick={() => openExternalLink("https://detect.ac")}
-            >
-              detect.ac
-            </button>
-            <button
-              className="footer-link btn-link-plain"
-              onClick={() => openExternalLink("https://detect.ac/tools")}
-            >
-              Documentation
-            </button>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
