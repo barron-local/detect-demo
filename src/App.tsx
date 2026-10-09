@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { TOOLS_DATA, ToolCategory, ForensicTool } from "./data/toolsData";
 import { Navbar } from "./components/Navbar";
-import { HeroSection } from "./components/HeroSection";
 import { CategoryFilter } from "./components/CategoryFilter";
 import { Toolbar } from "./components/Toolbar";
 import { ToolCard } from "./components/ToolCard";
@@ -87,11 +86,6 @@ export function App() {
       />
 
       <main className="main-content">
-        <HeroSection
-          totalTools={TOOLS_DATA.length}
-          filteredCount={filteredTools.length}
-        />
-
         <CategoryFilter
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
